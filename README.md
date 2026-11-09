@@ -6,6 +6,10 @@
 
 **Статус:** фаза 0, фундамент. См. [роадмап](docs/03-roadmap.md).
 
+## Команда
+
+Alex (продукт), Claude (бэкенд и сборка), Codex (UI/UX и фронтенд). Правила для агентов: [AGENTS.md](AGENTS.md), процесс: [docs/team](docs/team/README.md), контракт API: [docs/api](docs/api/README.md).
+
 ## Документация
 
 | Документ                                         | О чём                                        |
