@@ -15,9 +15,12 @@ function initialLanguage(): "ru" | "en" {
   return navigator.language.toLowerCase().startsWith("ru") ? "ru" : "en";
 }
 
+const language = initialLanguage();
+document.documentElement.lang = language;
+
 void i18n.use(initReactI18next).init({
   resources: { ru: { translation: ru }, en: { translation: en } },
-  lng: initialLanguage(),
+  lng: language,
   fallbackLng: "en",
   interpolation: { escapeValue: false },
 });

@@ -4,24 +4,26 @@
  */
 :root {
   /* Поверхности */
-  --void: #06090d;
-  --surface-panel: rgb(12 17 23 / 0.82);
-  --surface-raised: #111922;
-  --surface-hover: #17222d;
-  --panel-blur: 14px;
+  --void: #05090f;
+  --surface-panel: rgb(15 23 33 / 0.88);
+  --surface-raised: #172330;
+  --surface-hover: #213342;
+  --panel-blur: 24px;
+  --surface-sheen: rgb(205 232 255 / 0.045);
+  --shadow-panel: 0 16px 48px rgb(0 0 0 / 0.28), inset 0 1px 0 var(--surface-sheen);
 
   /* Линии */
-  --line: #1b2632;
-  --line-strong: #2a3a4a;
+  --line: #263441;
+  --line-strong: #405563;
 
   /* Текст */
-  --text: #dce6ee;
-  --text-secondary: #8b9cac;
-  --text-muted: #5b6c7c;
+  --text: #e5eef4;
+  --text-secondary: #a6b8c8;
+  --text-muted: #8b9eae;
 
   /* Акцент и статусы */
-  --accent: #3fd0e0;
-  --accent-soft: rgb(63 208 224 / 0.14);
+  --accent: #75dfd2;
+  --accent-soft: rgb(117 223 210 / 0.1);
   --alert: #ff5a4e;
   --warn: #f2b544;
   --ok: #4fd18b;
@@ -37,11 +39,42 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
   /* Форма и движение */
-  --radius: 2px;
+  --radius: 6px;
+  --radius-panel: 14px;
+  --radius-pill: 999px;
+  --spacing: 4px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-lg: 16px;
+  --text-xl: 24px;
+  --text-display: clamp(24px, 3vw, 40px);
+  --tracking-label: 0.14em;
+  --size-icon: 18px;
+  --size-control: 40px;
+  --size-header: 72px;
+  --size-sidebar: 264px;
+  --size-footer: 44px;
+  --space-screen: 24px;
+  --globe-base: #101c29;
+  --globe-brightness: 0.6;
+  --globe-saturation: 0.7;
+  --globe-contrast: 1.15;
+  --globe-night-brightness: 2.8;
+  --globe-glow: rgb(53 130 182 / 0.12);
   --corner: 8px;
   --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 400ms;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --space-screen: 16px;
+    --size-header: 64px;
+    --size-sidebar: 240px;
+    --size-footer: 72px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
