@@ -10,7 +10,7 @@ interface DataRowProps {
 /** Строка «подпись — моноширинное значение». */
 export function DataRow({ label, value, unit }: DataRowProps) {
   return (
-    <div className="flex items-baseline justify-between gap-3 py-1 text-[12px]">
+    <div className="flex items-baseline justify-between gap-3 py-1 text-sm">
       <span className="text-secondary">{label}</span>
       <span className="hud-num text-text">
         {value}

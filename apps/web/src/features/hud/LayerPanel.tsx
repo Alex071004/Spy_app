@@ -1,41 +1,55 @@
 import { useTranslation } from "react-i18next";
 import type { LayerId } from "@spyapp/shared";
-import { Panel } from "@spyapp/ui";
+import { IconButton, LayerToggle, Panel } from "@spyapp/ui";
 import { useViewStore } from "../../store/view";
+import { Icon, type IconName } from "./Icon";
+import { feedLabel } from "./feedLabel";
 
-const LAYERS: { id: LayerId; color: string }[] = [
-  { id: "aircraft", color: "bg-aircraft" },
-  { id: "vessels", color: "bg-vessels" },
-  { id: "satellites", color: "bg-satellites" },
-  { id: "events", color: "bg-events" },
+const LAYERS: { id: LayerId; icon: IconName; color: string }[] = [
+  { id: "aircraft", icon: "aircraft", color: "text-aircraft" },
+  { id: "vessels", icon: "vessels", color: "text-vessels" },
+  { id: "satellites", icon: "satellites", color: "text-satellites" },
+  { id: "events", icon: "events", color: "text-events" },
 ];
 
-export function LayerPanel() {
+export function LayerPanel({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const active = useViewStore((s) => s.activeLayers);
   const toggle = useViewStore((s) => s.toggleLayer);
-
+  const feed = useViewStore((s) => s.feed);
   return (
-    <Panel title={t("layers.title")} className="pointer-events-auto w-56">
-      <ul className="-mx-1">
-        {LAYERS.map(({ id, color }) => (
+    <Panel
+      title={t("layers.title")}
+      aside={
+        <IconButton label={t("layers.hide")} onClick={onClose}>
+          <Icon name="close" />
+        </IconButton>
+      }
+    >
+      <ul>
+        {LAYERS.map(({ id, icon, color }) => (
           <li key={id}>
-            <button
-              type="button"
-              aria-pressed={active[id]}
-              onClick={() => toggle(id)}
-              className="group flex w-full items-center gap-2.5 rounded-sm px-1 py-1.5 text-left text-[13px] transition-colors duration-[var(--dur-fast)] hover:bg-hover"
-            >
-              <span
-                className={`size-2 rounded-full ${color} transition-opacity ${active[id] ? "" : "opacity-25"}`}
-              />
-              <span className={active[id] ? "text-text" : "text-muted"}>{t(`layers.${id}`)}</span>
-              {/* Счётчики объектов появятся вместе с live-данными в фазе 1 */}
-              <span className="hud-num ml-auto text-[12px] text-muted">—</span>
-            </button>
+            <LayerToggle
+              label={t(`layers.${id}`)}
+              description={t(
+                !active[id]
+                  ? "layers.disabled"
+                  : id === "aircraft"
+                    ? feedLabel(feed, true)
+                    : "layers.waiting",
+              )}
+              icon={<Icon name={icon} />}
+              active={active[id]}
+              onToggle={() => toggle(id)}
+              className={color}
+            />
           </li>
         ))}
       </ul>
+      <div className="layer-note">
+        <span className="status-dot" />
+        {t(`feed.connection.${feed.connection}`)}
+      </div>
     </Panel>
   );
 }

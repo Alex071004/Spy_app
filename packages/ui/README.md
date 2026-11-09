@@ -1,5 +1,11 @@
 # @spyapp/ui
 
-Дизайн-система ([07-design.md](../../docs/07-design.md)): токены (цвета, шрифты, отступы как CSS-переменные + Tailwind preset) и HUD-компоненты: `Panel`, `DataRow`, `Stamp`, `Briefing`, `LayerToggle`, `ObjectCard`.
+Дизайн-система «Ситуационного центра»: [правила и палитра](../../docs/07-design.md).
 
-Выделяется из `apps/web`, когда компонентов станет достаточно (фаза 1–2).
+- `src/tokens.css` — цвета, типографика, размеры, поверхности и движение, включая mobile и reduced motion.
+- `src/theme.css` — связь с Tailwind v4 и общие стили HUD.
+- `Panel`, `IconButton`, `LayerToggle`, `DataRow`, `Kbd` — переиспользуемые React-компоненты.
+
+Импортировать компоненты из `@spyapp/ui`, тему — из `@spyapp/ui/theme.css` после Tailwind. Приложение подключает локальные Inter Variable и JetBrains Mono. Строки передаются компонентам из i18n приложения.
+
+Первое применение: [макет F1](../../docs/design/f1-interface.md).

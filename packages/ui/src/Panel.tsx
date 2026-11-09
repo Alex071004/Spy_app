@@ -8,19 +8,17 @@ interface PanelProps {
   children: ReactNode;
 }
 
-/** Полупрозрачная панель поверх глобуса с акцентными уголками. */
+/** Объёмная компактная поверхность поверх глобуса. */
 export function Panel({ title, aside, className = "", children }: PanelProps) {
   return (
-    <section
-      className={`hud-corners rounded-sm border border-line bg-panel backdrop-blur-[var(--panel-blur)] ${className}`}
-    >
+    <section className={`hud-panel ${className}`}>
       {title !== undefined && (
-        <header className="flex items-center justify-between border-b border-line px-3 py-2">
+        <header className="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
           <h2 className="hud-label">{title}</h2>
           {aside}
         </header>
       )}
-      <div className="px-3 py-2">{children}</div>
+      <div className="p-3">{children}</div>
     </section>
   );
 }
