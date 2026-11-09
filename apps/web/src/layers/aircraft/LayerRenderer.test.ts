@@ -35,6 +35,23 @@ function harness() {
 }
 
 describe("LayerRenderer: настоящие коллекции Cesium без WebGL", () => {
+  it("замораживает прогноз при потере соединения", () => {
+    const clock = vi.spyOn(performance, "now");
+    clock.mockReturnValue(1000);
+    const h = harness();
+    const item = { ...fixtureAircraft[0]!, updatedAt: Date.now() };
+    h.renderer.snapshot([item], 1000, item.updatedAt);
+    clock.mockReturnValue(5000);
+    h.tick();
+    h.renderer.setPredicting(false);
+    h.tick();
+    const frozen = Cartesian3.clone(h.collection.get(0).position);
+    clock.mockReturnValue(10000);
+    h.tick();
+    expect(h.collection.get(0).position).toEqual(frozen);
+    h.renderer.destroy();
+    clock.mockRestore();
+  });
   it("согласует snapshot, delta и удаления без пересоздания прежних billboard", () => {
     const h = harness();
     h.renderer.snapshot(fixtureAircraft, 0);

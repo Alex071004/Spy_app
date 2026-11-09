@@ -22,6 +22,7 @@ export class LayerRenderer {
   private readonly scratch = new Cartesian3();
   private lastFrame = 0;
   private animating = false;
+  private frozenAt: number | null = null;
   private readonly image: string;
   private readonly markerSize: number;
 
@@ -52,7 +53,7 @@ export class LayerRenderer {
     return this.tracks.values().next().value?.motion.sample(performance.now()) ?? null;
   }
 
-  snapshot(items: TrackedObject[], now = performance.now()) {
+  snapshot(items: TrackedObject[], now = performance.now(), sourceNow = Date.now()) {
     const retained = new Set(items.map((item) => item.id));
     for (const [id, track] of this.tracks) {
       if (!retained.has(id)) {
@@ -60,10 +61,10 @@ export class LayerRenderer {
         this.tracks.delete(id);
       }
     }
-    this.upsert(items, now);
+    this.upsert(items, now, sourceNow);
   }
 
-  delta(up: TrackedObject[], rm: string[], now = performance.now()) {
+  delta(up: TrackedObject[], rm: string[], now = performance.now(), sourceNow = Date.now()) {
     for (const id of rm) {
       const track = this.tracks.get(id);
       if (track) {
@@ -71,32 +72,30 @@ export class LayerRenderer {
         this.tracks.delete(id);
       }
     }
-    this.upsert(up, now);
+    this.upsert(up, now, sourceNow);
   }
 
-  private upsert(items: TrackedObject[], now: number) {
+  private upsert(items: TrackedObject[], now: number, sourceNow: number) {
     for (const item of items) {
       if (item.layer !== "aircraft") continue;
       const existing = this.tracks.get(item.id);
       if (existing) {
-        existing.motion.update(item, now);
+        existing.motion.update(item, now, sourceNow);
         continue;
       }
+      const motion = new MotionTrack(item, now, sourceNow);
+      const position = motion.sample(now);
       const billboard = this.collection.add({
         id: item.id,
         image: this.image,
-        position: Cartesian3.fromDegrees(
-          item.position.lon,
-          item.position.lat,
-          item.position.alt ?? 0,
-        ),
+        position: Cartesian3.fromDegrees(position.lon, position.lat, position.alt ?? 0),
         width: this.markerSize,
         height: this.markerSize,
         alignedAxis: Cartesian3.UNIT_Z,
         rotation: -CesiumMath.toRadians(item.heading ?? 0),
         scaleByDistance: new NearFarScalar(1_000_000, 1.15, 25_000_000, 0.8),
       });
-      this.tracks.set(item.id, { motion: new MotionTrack(item, now), billboard });
+      this.tracks.set(item.id, { motion, billboard });
     }
     this.lastFrame = 0;
     this.animating = true;
@@ -108,7 +107,7 @@ export class LayerRenderer {
     this.lastFrame = now;
     let moving = false;
     for (const { motion, billboard } of this.tracks.values()) {
-      const position = motion.sample(now);
+      const position = motion.sample(this.frozenAt ?? now);
       billboard.position = Cartesian3.fromDegrees(
         position.lon,
         position.lat,
@@ -117,7 +116,7 @@ export class LayerRenderer {
         this.scratch,
       );
       billboard.rotation = -CesiumMath.toRadians(motion.heading);
-      moving ||= motion.isMoving(now);
+      moving ||= this.frozenAt === null && motion.isMoving(now);
     }
     this.animating = moving;
     this.scene.requestRender();
@@ -127,6 +126,12 @@ export class LayerRenderer {
     this.tracks.clear();
     this.animating = false;
     this.collection.removeAll();
+    this.scene.requestRender();
+  }
+
+  setPredicting(enabled: boolean) {
+    this.frozenAt = enabled ? null : performance.now();
+    this.animating = true;
     this.scene.requestRender();
   }
 

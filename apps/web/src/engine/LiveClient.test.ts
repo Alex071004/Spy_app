@@ -68,6 +68,13 @@ afterEach(() => {
 });
 
 describe("LiveClient", () => {
+  it("выравнивает время измерения по hello сервера", () => {
+    const h = harness();
+    h.first.receive({ ...hello, time: Date.now() + 300_000 });
+    expect(h.client.serverNow() - Date.now()).toBe(300_000);
+    vi.advanceTimersByTime(2000);
+    expect(h.client.serverNow() - Date.now()).toBe(300_000);
+  });
   it("ждёт hello, затем отправляет последнюю подписку и принимает snapshot", () => {
     const h = harness();
     h.first.receive(snap);
