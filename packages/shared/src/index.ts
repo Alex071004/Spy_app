@@ -2,3 +2,5 @@
 export * from "./model";
 export * from "./protocol";
 export * from "./api";
+export * from "./geo";
+export * from "./layers/aircraft";

@@ -34,3 +34,6 @@ apps/web/public/cesium/
 
 # local tool settings
 .claude/settings.local.json
+
+# рабочие копии агентов (git worktree)
+.claude/worktrees/
