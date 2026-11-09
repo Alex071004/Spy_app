@@ -61,6 +61,7 @@
   --globe-saturation: 0.7;
   --globe-contrast: 1.15;
   --globe-night-brightness: 2.8;
+  --aircraft-marker-size: 20;
   --globe-glow: rgb(53 130 182 / 0.12);
   --corner: 8px;
   --dur-fast: 120ms;

@@ -8,12 +8,16 @@ import { LayerPanel } from "../features/hud/LayerPanel";
 import { StatusBar } from "../features/hud/StatusBar";
 import { SceneControls, type CameraAction } from "../features/hud/SceneControls";
 import { Icon } from "../features/hud/Icon";
+import { AircraftLayer } from "../layers/aircraft/AircraftLayer";
+import { initialFeedState } from "../layers/aircraft/state";
+import { FeedNotice } from "../features/hud/FeedNotice";
 
 export function App() {
   const { t } = useTranslation();
   const globeRef = useRef<HTMLDivElement>(null);
   const creditRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GlobeEngine | null>(null);
+  const aircraftRef = useRef<AircraftLayer | null>(null);
   const [layersOpen, setLayersOpen] = useState(
     () => !window.matchMedia("(max-width: 700px)").matches,
   );
@@ -22,7 +26,8 @@ export function App() {
 
   useEffect(() => {
     if (!globeRef.current || !creditRef.current) return;
-    const { setCursor, setCameraHeight } = useViewStore.getState();
+    const { setCursor, setCameraHeight, setFeed, activeLayers } = useViewStore.getState();
+    setFeed(initialFeedState);
     let engine: GlobeEngine;
     try {
       engine = new GlobeEngine(globeRef.current, {
@@ -38,7 +43,21 @@ export function App() {
       setSceneState("error");
       return;
     }
+    const aircraft = new AircraftLayer(engine.viewer, {
+      url: import.meta.env.VITE_WS_URL ?? "ws://localhost:4000/ws",
+      tokens: getComputedStyle(globeRef.current),
+      active: activeLayers.aircraft,
+      onState: setFeed,
+    });
+    aircraftRef.current = aircraft;
+    const unsubscribe = useViewStore.subscribe((state, previous) => {
+      if (state.activeLayers.aircraft !== previous.activeLayers.aircraft)
+        aircraft.setActive(state.activeLayers.aircraft);
+    });
     return () => {
+      unsubscribe();
+      aircraftRef.current = null;
+      aircraft.destroy();
       engineRef.current = null;
       engine.destroy();
     };
@@ -122,6 +141,7 @@ export function App() {
             layersOpen={layersOpen}
             onLayers={() => setLayersOpen((open) => !open)}
           />
+          <FeedNotice onFocus={() => aircraftRef.current?.focus()} />
           <div className="scene-caption">
             <span className="hud-label">{t("scene.earth")}</span>
             <span>{t("scene.drag")}</span>
