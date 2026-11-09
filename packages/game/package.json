@@ -1,0 +1,7 @@
+{
+  "name": "@spyapp/game",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure game logic: missions, progression, scoring"
+}

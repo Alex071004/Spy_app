@@ -1,0 +1,53 @@
+/*
+ * Дизайн-токены «Ситуационный центр». Единственный источник цветов и размеров.
+ * Описание: docs/07-design.md
+ */
+:root {
+  /* Поверхности */
+  --void: #06090d;
+  --surface-panel: rgb(12 17 23 / 0.82);
+  --surface-raised: #111922;
+  --surface-hover: #17222d;
+  --panel-blur: 14px;
+
+  /* Линии */
+  --line: #1b2632;
+  --line-strong: #2a3a4a;
+
+  /* Текст */
+  --text: #dce6ee;
+  --text-secondary: #8b9cac;
+  --text-muted: #5b6c7c;
+
+  /* Акцент и статусы */
+  --accent: #3fd0e0;
+  --accent-soft: rgb(63 208 224 / 0.14);
+  --alert: #ff5a4e;
+  --warn: #f2b544;
+  --ok: #4fd18b;
+
+  /* Слои на глобусе */
+  --layer-aircraft: #ffd166;
+  --layer-vessels: #5ee6a8;
+  --layer-satellites: #b79cff;
+  --layer-events: #ff7a45;
+
+  /* Типографика */
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Форма и движение */
+  --radius: 2px;
+  --corner: 8px;
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 400ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
+}

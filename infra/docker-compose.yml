@@ -1,0 +1,22 @@
+# Локальная инфраструктура. Нужна с фазы 4 (аккаунты), см. ADR-0004.
+# Запуск: pnpm infra:up
+name: spyapp
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_USER: spyapp
+      POSTGRES_PASSWORD: spyapp
+      POSTGRES_DB: spyapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spyapp"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata:

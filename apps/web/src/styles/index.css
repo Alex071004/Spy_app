@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "@spyapp/ui/theme.css";
+@source "../../../../packages/ui/src";
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--void);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+/* Атрибуция Cesium и источников в нижней строке */
+.spy-credits {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: right;
+}
+.spy-credits .cesium-credit-logoContainer {
+  display: none !important;
+}
+.spy-credits a {
+  color: var(--text-secondary);
+}
