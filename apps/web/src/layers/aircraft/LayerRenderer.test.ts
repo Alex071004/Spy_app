@@ -47,6 +47,7 @@ describe("LayerRenderer: настоящие коллекции Cesium без Web
     h.tick();
     const frozen = Cartesian3.clone(h.collection.get(0).position);
     clock.mockReturnValue(10000);
+    h.renderer.setPredicting(false);
     h.tick();
     expect(h.collection.get(0).position).toEqual(frozen);
     h.renderer.destroy();

@@ -130,6 +130,7 @@ export class LayerRenderer {
   }
 
   setPredicting(enabled: boolean) {
+    if (!enabled && this.frozenAt !== null) return;
     this.frozenAt = enabled ? null : performance.now();
     this.animating = true;
     this.scene.requestRender();
