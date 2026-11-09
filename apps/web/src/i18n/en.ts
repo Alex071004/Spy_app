@@ -1,6 +1,25 @@
 import type { Dictionary } from "./ru";
 
 export const en: Dictionary = {
+  feed: {
+    demo: "Demo · fictional data",
+    live: "Server stream",
+    simulated: "Simulation · server stream",
+    stale: "Connection lost · stale data",
+    waiting: "Awaiting a fresh snapshot",
+    disabled: "Aviation disabled",
+    incompatible: "Reload the page · protocol version changed",
+    invalid: "Invalid packet rejected",
+    server: "The server reported an error",
+    focus: "Take a closer look",
+    connection: {
+      connecting: "Connecting to stream…",
+      waiting: "No server snapshot received yet",
+      live: "WebSocket connected",
+      reconnecting: "Reconnecting to stream…",
+      incompatible: "Incompatible protocol version",
+    },
+  },
   top: {
     caption: "Situation centre",
     workspace: "A planet in focus",
