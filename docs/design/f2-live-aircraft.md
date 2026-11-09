@@ -1,6 +1,6 @@
 # F2 · Поток и самолёты на глобусе
 
-**Статус:** реализовано. PR #3 из `codex/f2-live-aircraft` влит в `codex/f1-interface`; объединённые F1/F2 ожидают мержа в `main` через PR #2. Задача остаётся 🟨 до попадания в `main`.
+**Статус:** выполнено. Реализация из [PR #3](https://github.com/Alex071004/Spy_app/pull/3) влита в `main` вместе с F1 через [PR #2](https://github.com/Alex071004/Spy_app/pull/2).
 
 ## Поведение
 
