@@ -1,9 +1,11 @@
 import type { FastifyBaseLogger } from "fastify";
-import type { LayerId, TrackedObject } from "@spyapp/shared";
+import type { BBox, LayerId, TrackedObject } from "@spyapp/shared";
 
 export interface ConnectorContext {
   /** Положить свежие объекты в состояние мира */
   upsert(items: TrackedObject[]): void;
+  /** Области, которые клиенты сейчас смотрят на этом слое вблизи: их стоит обновлять чаще */
+  views(): BBox[];
   log: FastifyBaseLogger;
 }
 

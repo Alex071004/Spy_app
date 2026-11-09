@@ -9,7 +9,8 @@ export interface WorldStateReader {
 
 /** Через сколько миллисекунд без обновлений объект считается пропавшим */
 const DEFAULT_TTL_MS: Record<LayerId, number> = {
-  aircraft: 60_000,
+  // adsb.lol обновляет тихие районы раз в несколько минут (adsb-lol/scheduler.ts)
+  aircraft: 180_000,
   vessels: 15 * 60_000,
   satellites: 60 * 60_000,
   events: 24 * 60 * 60_000,

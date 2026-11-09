@@ -15,9 +15,7 @@ const app = await buildApp({
 });
 
 if (connectors.length === 0) {
-  app.log.warn(
-    "No data sources enabled. Set SIMULATE=1 in .env for simulated aircraft and vessels",
-  );
+  app.log.warn("No data sources enabled");
 }
 
 await app.listen({ port: Number(process.env.API_PORT ?? 4000), host: "0.0.0.0" });

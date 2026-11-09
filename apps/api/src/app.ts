@@ -38,6 +38,7 @@ export async function buildApp(opts: AppOptions = {}) {
     for (const connector of connectors) {
       await connector.start({
         upsert: (items) => world.upsert(items),
+        views: () => hub.views(connector.layer),
         log: app.log.child({ connector: connector.id }),
       });
     }

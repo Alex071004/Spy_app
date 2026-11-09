@@ -118,6 +118,15 @@ export class StreamHub {
     };
   }
 
+  /** Области, которые клиенты смотрят на слое с зумом не меньше minZoom (общий вид Земли не в счёт) */
+  views(layer: LayerId, minZoom = 4): BBox[] {
+    const result: BBox[] = [];
+    for (const { sub } of this.clients) {
+      if (sub && sub.z >= minZoom && sub.layers.has(layer)) result.push(sub.bbox);
+    }
+    return result;
+  }
+
   /** Один шаг рассылки. Публичный, чтобы тесты не ждали таймер */
   tick() {
     for (const client of this.clients) {

@@ -31,7 +31,7 @@ describe("WorldState", () => {
     const world = new WorldState();
     world.upsert([plane("a", 0, 0, 1_000), plane("b", 100, 0, 100_000)]);
     expect(world.query("aircraft", [-10, -10, 10, 10]).map((o) => o.id)).toEqual(["aircraft:a"]);
-    expect(world.sweep(100_000)).toBe(1);
+    expect(world.sweep(200_000)).toBe(1);
     expect(world.count("aircraft")).toBe(1);
     expect(world.get("aircraft:b")).toBeDefined();
   });
