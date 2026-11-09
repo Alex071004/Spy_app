@@ -50,7 +50,22 @@ export class LayerRenderer {
   }
 
   firstPosition() {
-    return this.tracks.values().next().value?.motion.sample(performance.now()) ?? null;
+    return (
+      this.tracks
+        .values()
+        .next()
+        .value?.motion.sample(this.frozenAt ?? performance.now()) ?? null
+    );
+  }
+
+  getObject(id: string) {
+    return this.tracks.get(id)?.motion.item;
+  }
+  renderedPosition(id: string) {
+    return this.tracks.get(id)?.billboard.position;
+  }
+  ids() {
+    return this.tracks.keys();
   }
 
   snapshot(items: TrackedObject[], now = performance.now(), sourceNow = Date.now()) {

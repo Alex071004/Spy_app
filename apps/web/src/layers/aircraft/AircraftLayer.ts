@@ -5,6 +5,8 @@ import { FixtureFeed } from "./FixtureFeed";
 import { LayerRenderer } from "./LayerRenderer";
 
 import { initialFeedState, type AircraftFeedState } from "./state";
+import { AircraftSelection } from "./AircraftSelection";
+import type { TrackedObject } from "@spyapp/shared";
 
 export class AircraftLayer {
   private readonly renderer: LayerRenderer;
@@ -13,6 +15,7 @@ export class AircraftLayer {
   private readonly removeCamera: () => void;
   private state = { ...initialFeedState };
   private active: boolean;
+  private readonly selection: AircraftSelection;
 
   constructor(
     private readonly viewer: Viewer,
@@ -21,10 +24,18 @@ export class AircraftLayer {
       tokens: CSSStyleDeclaration;
       active: boolean;
       onState: (state: AircraftFeedState) => void;
+      reticle: HTMLDivElement;
+      onSelection: (object: TrackedObject | null) => void;
     },
   ) {
     this.active = options.active;
     this.renderer = new LayerRenderer(viewer.scene, options.tokens);
+    this.selection = new AircraftSelection(
+      viewer,
+      this.renderer,
+      options.reticle,
+      options.onSelection,
+    );
     const report = (patch: Partial<AircraftFeedState>) => {
       if (
         Object.entries(patch).every(
@@ -44,6 +55,7 @@ export class AircraftLayer {
           if (connection === "incompatible") {
             this.fixtures.stop();
             this.renderer.clear();
+            this.selection.select(null);
           }
           report({ connection });
         },
@@ -62,7 +74,10 @@ export class AircraftLayer {
   private readonly getView: () => ReturnType<typeof readViewport>;
 
   private startDemo() {
-    this.fixtures.start((items) => this.renderer.snapshot(items));
+    this.fixtures.start((items) => {
+      this.renderer.snapshot(items);
+      this.selection.refresh();
+    });
   }
 
   private receive(message: LayerMessage, report: (patch: Partial<AircraftFeedState>) => void) {
@@ -76,12 +91,14 @@ export class AircraftLayer {
     if (message.t === "snap") this.renderer.snapshot(message.items, now, sourceNow);
     else this.renderer.delta(message.up, message.rm, now, sourceNow);
     report({ mode: "stream", simulated: this.renderer.hasSimulated });
+    this.selection.refresh();
   }
 
   setActive(active: boolean) {
     if (this.active === active) return;
     this.active = active;
     this.renderer.clear();
+    this.selection.select(null);
     this.fixtures.stop();
     if (active && this.state.mode === "demo" && this.state.connection !== "incompatible")
       this.startDemo();
@@ -97,10 +114,18 @@ export class AircraftLayer {
     });
   }
 
+  selectNearest() {
+    return this.selection.selectNearest();
+  }
+  clearSelection() {
+    this.selection.select(null);
+  }
+
   destroy() {
     this.client.stop();
     this.fixtures.stop();
     this.removeCamera();
+    this.selection.destroy();
     this.renderer.destroy();
   }
 }

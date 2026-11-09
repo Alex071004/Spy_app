@@ -35,6 +35,61 @@
 }
 
 @layer components {
+  .hud-reticle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: var(--z-reticle);
+    width: var(--size-reticle);
+    height: var(--size-reticle);
+    pointer-events: none;
+    color: var(--accent);
+    background:
+      linear-gradient(currentColor, currentColor) left top / var(--reticle-corner) 1px no-repeat,
+      linear-gradient(currentColor, currentColor) left top / 1px var(--reticle-corner) no-repeat,
+      linear-gradient(currentColor, currentColor) right top / var(--reticle-corner) 1px no-repeat,
+      linear-gradient(currentColor, currentColor) right top / 1px var(--reticle-corner) no-repeat,
+      linear-gradient(currentColor, currentColor) left bottom / var(--reticle-corner) 1px no-repeat,
+      linear-gradient(currentColor, currentColor) left bottom / 1px var(--reticle-corner) no-repeat,
+      linear-gradient(currentColor, currentColor) right bottom / var(--reticle-corner) 1px no-repeat,
+      linear-gradient(currentColor, currentColor) right bottom / 1px var(--reticle-corner) no-repeat;
+  }
+  .hud-reticle[hidden] {
+    display: none;
+  }
+  .object-card-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-reticle);
+    background: var(--surface-raised);
+    display: flex;
+    justify-content: space-between;
+    gap: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * 4);
+    border-bottom: 1px solid var(--line);
+  }
+  .object-card-header h2 {
+    margin-top: calc(var(--spacing) * 2);
+    font-size: var(--text-xl);
+    line-height: 1.2;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+  }
+  .object-card-body {
+    padding: calc(var(--spacing) * 4);
+  }
+  .object-card-badge {
+    color: var(--accent);
+    font-size: var(--text-xs);
+    margin-bottom: calc(var(--spacing) * 3);
+  }
+  .object-card-footer {
+    padding: calc(var(--spacing) * 3) calc(var(--spacing) * 4);
+    border-top: 1px solid var(--line);
+    color: var(--text-muted);
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+  }
   /* Метка раздела: «СЛОИ», «СВОДКА» */
   .hud-label {
     font-size: var(--text-xs);
