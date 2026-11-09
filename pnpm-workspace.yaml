@@ -1,3 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# esbuild (через tsx и vite) проверяет свой бинарник в postinstall
+onlyBuiltDependencies:
+  - esbuild

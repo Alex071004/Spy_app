@@ -12,6 +12,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && turbo run lint typecheck test",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.yml down"
   },
