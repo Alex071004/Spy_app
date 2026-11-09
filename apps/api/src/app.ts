@@ -7,18 +7,49 @@ import {
   type HealthResponse,
   type ServerMessage,
 } from "@spyapp/shared";
+import type { Connector } from "./core/connector";
+import { StreamHub, type StreamHubOptions } from "./core/stream-hub";
+import { WorldState } from "./core/world-state";
 
 interface AppOptions {
   webOrigin?: string;
   logLevel?: string;
+  connectors?: Connector[];
+  hub?: StreamHubOptions;
+  /** Как часто удалять пропавшие объекты */
+  sweepMs?: number;
 }
+
+/** Клиент не успевает читать: пропускаем для него тик, а не копим очередь */
+const MAX_BUFFERED_BYTES = 2 * 1024 * 1024;
 
 /** Сборка приложения без listen: используется сервером и тестами */
 export async function buildApp(opts: AppOptions = {}) {
   const app = Fastify({ logger: { level: opts.logLevel ?? "info" } });
+  const world = new WorldState();
+  const hub = new StreamHub(world, opts.hub);
+  const connectors = opts.connectors ?? [];
+  let sweepTimer: ReturnType<typeof setInterval> | undefined;
 
   await app.register(cors, { origin: opts.webOrigin ?? "http://localhost:5173" });
   await app.register(websocket);
+
+  app.addHook("onReady", async () => {
+    for (const connector of connectors) {
+      await connector.start({
+        upsert: (items) => world.upsert(items),
+        log: app.log.child({ connector: connector.id }),
+      });
+    }
+    hub.start();
+    sweepTimer = setInterval(() => world.sweep(Date.now()), opts.sweepMs ?? 5_000);
+  });
+
+  app.addHook("onClose", async () => {
+    hub.stop();
+    clearInterval(sweepTimer);
+    for (const connector of connectors) await connector.stop();
+  });
 
   app.get("/health", async (): Promise<HealthResponse> => ({
     status: "ok",
@@ -26,13 +57,13 @@ export async function buildApp(opts: AppOptions = {}) {
     protocol: PROTOCOL_VERSION,
   }));
 
-  // Заготовка стриминга (ADR-0003): подписки принимаются и валидируются, данные появятся с stream-hub
   app.register(async (scope) => {
     scope.get("/ws", { websocket: true }, (socket) => {
       const send = (msg: ServerMessage) => socket.send(JSON.stringify(msg));
+      const client = hub.addClient(send, () => socket.bufferedAmount > MAX_BUFFERED_BYTES);
       send({ t: "hello", server: "spyapp-api", protocol: PROTOCOL_VERSION, time: Date.now() });
 
-      socket.on("message", (raw) => {
+      socket.on("message", (raw: Buffer) => {
         let data: unknown;
         try {
           data = JSON.parse(String(raw));
@@ -43,8 +74,9 @@ export async function buildApp(opts: AppOptions = {}) {
         if (!parsed.success) {
           return send({ t: "error", code: "bad_message", message: parsed.error.message });
         }
-        app.log.debug({ msg: parsed.data }, "ws message");
+        client.handle(parsed.data);
       });
+      socket.on("close", () => client.close());
     });
   });
 

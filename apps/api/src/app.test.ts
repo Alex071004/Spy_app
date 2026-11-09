@@ -1,9 +1,40 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { HealthResponseSchema, PROTOCOL_VERSION, ServerMessageSchema } from "@spyapp/shared";
+import {
+  HealthResponseSchema,
+  PROTOCOL_VERSION,
+  ServerMessageSchema,
+  type ServerMessage,
+} from "@spyapp/shared";
 import { buildApp } from "./app";
+import { createAircraftSimulator } from "./layers/aircraft/connectors/simulator";
+import { createVesselSimulator } from "./layers/vessels/connectors/simulator";
+
+type App = Awaited<ReturnType<typeof buildApp>>;
+
+/** Открывает /ws и собирает сообщения. Слушатель вешается до открытия, иначе hello теряется */
+async function connect(app: App) {
+  const inbox: ServerMessage[] = [];
+  const waiters: { until: (m: ServerMessage[]) => boolean; resolve: () => void }[] = [];
+  const ws = await app.injectWS(
+    "/ws",
+    {},
+    {
+      onInit: (socket) =>
+        socket.on("message", (raw: Buffer) => {
+          inbox.push(ServerMessageSchema.parse(JSON.parse(String(raw))));
+          for (const w of waiters) if (w.until(inbox)) w.resolve();
+        }),
+    },
+  );
+  const waitFor = (until: (m: ServerMessage[]) => boolean) =>
+    until(inbox)
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => waiters.push({ until, resolve }));
+  return { ws, inbox, waitFor };
+}
 
 describe("api", () => {
-  let app: Awaited<ReturnType<typeof buildApp>>;
+  let app: App;
 
   beforeAll(async () => {
     app = await buildApp({ logLevel: "silent" });
@@ -19,27 +50,47 @@ describe("api", () => {
   });
 
   it("/ws здоровается и отклоняет кривые сообщения", async () => {
-    const messages: unknown[] = [];
-    let done!: () => void;
-    const twoMessages = new Promise<void>((resolve) => (done = resolve));
-    // Слушатель вешается до открытия сокета, иначе hello приходит раньше подписки
-    const ws = await app.injectWS(
-      "/ws",
-      {},
-      {
-        onInit: (socket) =>
-          socket.on("message", (raw) => {
-            messages.push(JSON.parse(String(raw)));
-            if (messages.length === 2) done();
-          }),
-      },
-    );
+    const { ws, inbox, waitFor } = await connect(app);
     ws.send("not json");
-    await twoMessages;
+    await waitFor((m) => m.length >= 2);
+    ws.terminate();
+    expect(inbox[0]?.t).toBe("hello");
+    expect(inbox[1]).toMatchObject({ t: "error", code: "bad_json" });
+  });
+});
+
+describe("api в режиме симуляции", () => {
+  let app: App;
+
+  beforeAll(async () => {
+    app = await buildApp({
+      logLevel: "silent",
+      connectors: [
+        createAircraftSimulator({ count: 300, tickMs: 50 }),
+        createVesselSimulator({ count: 200, tickMs: 50 }),
+      ],
+      hub: { tickMs: 50, keyframeMs: 100 },
+    });
+    await app.ready();
+  });
+  afterAll(() => app.close());
+
+  it("отдаёт snap по подписке и затем дельты", async () => {
+    const { ws, inbox, waitFor } = await connect(app);
+    ws.send(
+      JSON.stringify({
+        t: "sub",
+        layers: ["aircraft", "vessels"],
+        bbox: [-180, -90, 180, 90],
+        z: 2,
+      }),
+    );
+    await waitFor((m) => m.some((x) => x.t === "delta"));
     ws.terminate();
 
-    const [hello, error] = messages.map((m) => ServerMessageSchema.parse(m));
-    expect(hello?.t).toBe("hello");
-    expect(error).toMatchObject({ t: "error", code: "bad_json" });
+    const snaps = inbox.filter((m) => m.t === "snap");
+    expect(snaps.map((s) => s.layer).sort()).toEqual(["aircraft", "vessels"]);
+    const aircraft = snaps.find((s) => s.layer === "aircraft");
+    expect(aircraft?.t === "snap" && aircraft.items).toHaveLength(300);
   });
 });
