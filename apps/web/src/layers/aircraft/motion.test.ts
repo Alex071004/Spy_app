@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fixtureAircraft } from "@spyapp/shared/fixtures";
-import { MotionTrack, projectPosition } from "./motion";
+import { MotionTrack, projectPosition, MAX_PREDICTION_MS } from "./motion";
+import { distanceM } from "@spyapp/shared";
 
 const aircraft = fixtureAircraft[0]!;
 
@@ -63,7 +64,7 @@ describe("движение самолётов", () => {
 
   it("ограничивает прогноз при потере потока и не выдумывает курс", () => {
     const track = new MotionTrack(aircraft, 0);
-    const finalPosition = { ...track.sample(3000) };
+    const finalPosition = { ...track.sample(MAX_PREDICTION_MS) };
     expect(track.sample(60_000)).toEqual(finalPosition);
     expect(track.isMoving(60_000)).toBe(false);
     const withoutHeading = { ...aircraft };
@@ -72,5 +73,26 @@ describe("движение самолётов", () => {
     expect(unknownDirection.sample(2000).lon).toBeCloseTo(aircraft.position.lon);
     expect(unknownDirection.sample(2000).lat).toBeCloseTo(aircraft.position.lat);
     expect(unknownDirection.isMoving(1000)).toBe(false);
+  });
+
+  it("продолжает движение после 3 с и до следующего keyframe B1", () => {
+    const track = new MotionTrack(aircraft, 0);
+    const atThree = { ...track.sample(3000) };
+    const atFour = { ...track.sample(4000) };
+    expect(distanceM(atThree, atFour)).toBeCloseTo(aircraft.speed!, 1);
+    expect(track.isMoving(4999)).toBe(true);
+  });
+
+  it("учитывает возраст измерения по серверному времени и не скачет на keyframe", () => {
+    const track = new MotionTrack(aircraft, 0, aircraft.updatedAt + 2000);
+    expect(distanceM(aircraft.position, track.sample(0))).toBeCloseTo(aircraft.speed! * 2, 1);
+    const before = { ...track.sample(3000) };
+    track.update(
+      { ...aircraft, updatedAt: aircraft.updatedAt + 5000, position: before },
+      3000,
+      aircraft.updatedAt + 5000,
+    );
+    expect(distanceM(before, track.sample(3000))).toBeLessThan(0.01);
+    expect(distanceM(before, track.sample(4000))).toBeGreaterThan(100);
   });
 });

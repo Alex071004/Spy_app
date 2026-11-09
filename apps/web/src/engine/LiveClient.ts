@@ -37,6 +37,7 @@ export class LiveClient {
   private stopped = true;
   private terminal = false;
   private attempt = 0;
+  private clockOffset = 0;
   private awaiting = new Set<string>();
   private reconnectTimer?: ReturnType<typeof setTimeout>;
   private watchdog?: ReturnType<typeof setTimeout>;
@@ -53,6 +54,10 @@ export class LiveClient {
     this.stopped = false;
     this.terminal = false;
     this.connect();
+  }
+
+  serverNow() {
+    return Date.now() + this.clockOffset;
   }
 
   setSubscription(layers: Subscription["layers"], viewport: Viewport) {
@@ -127,6 +132,7 @@ export class LiveClient {
       }
       if (this.greeted) return;
       this.greeted = true;
+      this.clockOffset = message.time - Date.now();
       this.attempt = 0;
       clearTimeout(this.watchdog);
       this.awaiting = new Set(this.subscription.layers);

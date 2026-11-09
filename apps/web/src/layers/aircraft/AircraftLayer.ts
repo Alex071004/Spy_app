@@ -40,6 +40,7 @@ export class AircraftLayer {
         url: options.url,
         onMessage: (message) => this.receive(message, report),
         onState: (connection) => {
+          if (this.state.mode === "stream") this.renderer.setPredicting(connection === "live");
           if (connection === "incompatible") {
             this.fixtures.stop();
             this.renderer.clear();
@@ -70,8 +71,10 @@ export class AircraftLayer {
       this.fixtures.stop();
       this.renderer.clear();
     }
-    if (message.t === "snap") this.renderer.snapshot(message.items);
-    else this.renderer.delta(message.up, message.rm);
+    const now = performance.now();
+    const sourceNow = this.client.serverNow();
+    if (message.t === "snap") this.renderer.snapshot(message.items, now, sourceNow);
+    else this.renderer.delta(message.up, message.rm, now, sourceNow);
     report({ mode: "stream", simulated: this.renderer.hasSimulated });
   }
 
