@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { LayerId } from "@spyapp/shared";
+import type { LayerId, TrackedObject } from "@spyapp/shared";
 import type { CursorPosition } from "../engine/GlobeEngine";
 import { initialFeedState, type AircraftFeedState } from "../layers/aircraft/state";
 
@@ -8,6 +8,8 @@ interface ViewState {
   cameraHeight: number;
   activeLayers: Record<LayerId, boolean>;
   feed: AircraftFeedState;
+  selectedObject: TrackedObject | null;
+  setSelectedObject: (object: TrackedObject | null) => void;
   setFeed: (feed: AircraftFeedState) => void;
   setCursor: (cursor: CursorPosition | null) => void;
   setCameraHeight: (meters: number) => void;
@@ -18,6 +20,8 @@ export const useViewStore = create<ViewState>()((set) => ({
   cursor: null,
   cameraHeight: 0,
   feed: initialFeedState,
+  selectedObject: null,
+  setSelectedObject: (selectedObject) => set({ selectedObject }),
   setFeed: (feed) => set({ feed }),
   activeLayers: { aircraft: true, vessels: true, satellites: false, events: true, webcams: false },
   setCursor: (cursor) => set({ cursor }),

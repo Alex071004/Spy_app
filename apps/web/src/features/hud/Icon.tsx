@@ -1,6 +1,7 @@
 import type { SVGProps } from "react";
 
 const paths = {
+  target: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
   globe: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z",
   aircraft: "m12 3 2 7 7 4v2l-7-2v5l2 2H8l2-2v-5l-7 2v-2l7-4 2-7Z",
   vessels: "m3 13 9-3 9 3-3 6H6l-3-6Zm4-1V7h10v5M10 7V4h4v3M3 21l3-1 3 1 3-1 3 1 3-1 3 1",

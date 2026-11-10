@@ -1,6 +1,30 @@
 import type { Dictionary } from "./ru";
 
 export const en: Dictionary = {
+  object: {
+    title: "Dossier · Aviation",
+    close: "Close dossier",
+    unknown: "Unknown aircraft",
+    selectNearest: "Select aircraft near view centre",
+    noneVisible: "No aircraft in the visible area",
+    altitude: "Altitude",
+    speed: "Speed",
+    kmh: "km/h",
+    ms: "m/s",
+    heading: "Heading",
+    squawk: "Squawk",
+    verticalRate: "Vertical speed",
+    route: "Route",
+    measuredPosition: "Measured position",
+    updated: "Updated",
+    source: "Source:",
+    simulated: "Simulation",
+    attribution: "Aircraft data: adsb.lol (ODbL)",
+    stale: "Stale data",
+    emergency: "Special situation",
+    onGround: "On ground",
+    observed: "Under observation",
+  },
   feed: {
     demo: "Demo · fictional data",
     live: "Server stream",

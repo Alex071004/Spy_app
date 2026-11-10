@@ -5,6 +5,8 @@ export interface WorldStateReader {
   get(id: string): TrackedObject | undefined;
   count(layer: LayerId): number;
   query(layer: LayerId, bbox: BBox): TrackedObject[];
+  /** Все объекты слоя: для поиска и детекторов */
+  values(layer: LayerId): Iterable<TrackedObject>;
 }
 
 /** Через сколько миллисекунд без обновлений объект считается пропавшим */
@@ -47,6 +49,10 @@ export class WorldState implements WorldStateReader {
 
   count(layer: LayerId) {
     return this.layers.get(layer)?.size ?? 0;
+  }
+
+  values(layer: LayerId): Iterable<TrackedObject> {
+    return this.layers.get(layer)?.values() ?? [];
   }
 
   query(layer: LayerId, bbox: BBox) {

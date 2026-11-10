@@ -11,6 +11,8 @@ import {
 import type { Connector } from "./core/connector";
 import { StreamHub, type StreamHubOptions } from "./core/stream-hub";
 import { WorldState } from "./core/world-state";
+import { createPlanespottersPhotos, type AircraftPhotoProvider } from "./layers/aircraft/photos";
+import { registerRestRoutes } from "./routes/rest";
 import { createFixtureSatellites, type SatelliteSource } from "./layers/satellites/tle-source";
 import { registerSatelliteRoutes } from "./routes/satellites";
 
@@ -19,6 +21,8 @@ interface AppOptions {
   logLevel?: string;
   connectors?: Connector[];
   hub?: StreamHubOptions;
+  /** Источник фото для досье. По умолчанию Planespotters */
+  photos?: AircraftPhotoProvider;
   /** Наборы TLE. По умолчанию встроенные фикстуры (без сети) */
   satellites?: SatelliteSource;
   /** Как часто удалять пропавшие объекты */
@@ -65,6 +69,7 @@ export async function buildApp(opts: AppOptions = {}) {
     protocol: PROTOCOL_VERSION,
   }));
 
+  registerRestRoutes(app, { world, photos: opts.photos ?? createPlanespottersPhotos() });
   registerSatelliteRoutes(app, opts.satellites ?? createFixtureSatellites());
 
   app.register(async (scope) => {

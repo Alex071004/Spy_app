@@ -1,12 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { SatelliteGroupSchema } from "@spyapp/shared";
+import { SatelliteGroupSchema, type ApiError } from "@spyapp/shared";
 import type { SatelliteSource } from "../layers/satellites/tle-source";
-
-/** Формат ошибки REST (совпадает с ApiError из контракта B4) */
-interface ApiError {
-  error: string;
-  message: string;
-}
 
 /** GET /api/satellites/tle?group=stations — наборы TLE для расчёта орбит на клиенте (B3) */
 export function registerSatelliteRoutes(app: FastifyInstance, source: SatelliteSource) {
