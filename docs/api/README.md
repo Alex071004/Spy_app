@@ -86,14 +86,14 @@
 
 ## REST
 
-| Метод | Путь                    | Ответ                                                  | Статус   |
-| ----- | ----------------------- | ------------------------------------------------------ | -------- |
-| GET   | `/health`               | `HealthResponse`: `{ status: "ok", uptime, protocol }` | ✅       |
-| GET   | `/api/search?q=&limit=` | `SearchResponse`: объекты и места                      | ✅       |
-| GET   | `/api/objects/:id`      | `ObjectDetailsResponse`: объект, название типа, фото   | ✅       |
-| GET   | `/api/satellites/tle`   | TLE для расчёта орбит на клиенте                       | план, B3 |
+| Метод | Путь                         | Ответ                                                  | Статус |
+| ----- | ---------------------------- | ------------------------------------------------------ | ------ |
+| GET   | `/health`                    | `HealthResponse`: `{ status: "ok", uptime, protocol }` | ✅     |
+| GET   | `/api/search?q=&limit=`      | `SearchResponse`: объекты и места                      | ✅     |
+| GET   | `/api/objects/:id`           | `ObjectDetailsResponse`: объект, название типа, фото   | ✅     |
+| GET   | `/api/satellites/tle?group=` | `SatellitesResponse`: набор TLE группы                 | ✅     |
 
-Ошибки REST приходят как `ApiError`: `{ error: "not_found" | "bad_request", message }` с кодом 404 или 400.
+Ошибки REST приходят как `ApiError`: `{ error: "not_found" | "bad_request" | "unavailable", message }` с кодом 404, 400 или 503.
 
 ### `GET /api/objects/:id`
 
@@ -114,6 +114,18 @@
 - Места (`kind: "place"`): пока только 57 крупных аэропортов, по коду и городу на русском или английском. Выбор: только камера. Поиск любых городов и адресов — задача B6.
 - Порядок: точное совпадение, потом с начала строки, потом внутри (от 3 символов). Совпадение только по типу самолёта ниже позывных и регистраций.
 
+REST-ответы больше 1 КБ сжимаются (gzip/brotli по `Accept-Encoding`), браузер распаковывает их сам.
+
+### `GET /api/satellites/tle`
+
+Спутники не идут через `/ws`: клиент получает набор TLE и сам считает позиции и орбиты через satellite.js (`twoline2satrec` + `propagate`). Схема `SatellitesResponseSchema` в `@spyapp/shared`.
+
+- `group`: `stations` (по умолчанию: МКС, Тяньгун и др.), `visual` (видимые глазом), `gps`, `glonass`, `galileo`, `weather`, `starlink` (~10 600), `active` (все действующие, большой набор).
+- Ответ: `{ group, fetchedAt, source, satellites: [{ noradId, name, line1, line2 }] }`. `ISS_NORAD_ID` = 25544 для отдельной подсветки МКС.
+- Заголовок `Cache-Control: public, max-age=3600`: в течение часа браузер берёт набор из своего кэша.
+- Сервер берёт данные с CelesTrak раз в 6 часов и хранит их на диске. Если CelesTrak недоступен, отдаётся последний набор (`fetchedAt` покажет его возраст). 503, если набора нет совсем.
+- `SIMULATE=1`: встроенные реальные TLE на 2026-11-09 (`source: "fixture"`): 15 станций и 8 GPS, без сети. Со временем точность позиций падает.
+
 ## Фикстуры
 
 `import { fixtures } from "@spyapp/shared/fixtures"` даёт несколько правдоподобных самолётов и судов. Подходят для вёрстки карточек и тестов, пока нет live-данных.
@@ -122,6 +134,7 @@
 
 | Версия | Дата       | Что                                                                                                                                         |
 | ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1      | 2026-11-10 | Без ломающих изменений: `/api/satellites/tle`, `SatellitesResponseSchema`, сжатие REST (B3)                                                 |
 | 1      | 2026-11-09 | Первая версия: `hello`, `sub`, `view`, `snap`, `delta`, `error`, `/health`                                                                  |
 | 1      | 2026-11-10 | Без ломающих изменений: `/api/objects/:id`, `/api/search`, `ApiError`, `ObjectPhoto` (B4)                                                   |
 | 1      | 2026-11-09 | Без ломающих изменений: `AircraftPropsSchema`, реальные самолёты из adsb.lol                                                                |
