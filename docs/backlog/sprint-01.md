@@ -22,7 +22,8 @@
 | B2  | Коннектор `adsb-lol`: реальные самолёты, нормализация, схема `props` слоя `aircraft` в `packages/shared/src/layers`                                                                                                         | ✅     |
 | B2b | Коннектор OpenSky `/states/all`: глобальный фон всех бортов одним запросом. adsb.lol остаётся для свежих данных в просматриваемой области. **Нужен бесплатный аккаунт OpenSky (Alex)**                                      | ⬜     |
 | B3  | Спутники: загрузка TLE с CelesTrak с кэшем, `GET /api/satellites/tle`                                                                                                                                                       | ⬜     |
-| B4  | `GET /api/search`, `GET /api/objects/:id` (+ фото с Planespotters)                                                                                                                                                          | ⬜     |
+| B4  | `GET /api/search`, `GET /api/objects/:id` (+ фото с Planespotters)                                                                                                                                                          | ✅     |
+| B6  | Геокодинг для `goto` и поиска мест: любые города и адреса (Nominatim/OSM через прокси с кэшем и лимитом 1 rps)                                                                                                              | ⬜     |
 | B5  | Нагрузочный тест WS: 15k объектов, 20 клиентов. Сжатие трафика: сейчас ~195 КБ/с на вид всего мира (замер B1), цель < 50 КБ/с: props только при изменении, MessagePack                                                      | ⬜     |
 
 ## Codex · UI/UX и фронтенд
@@ -51,6 +52,8 @@
 ## Запросы между зонами
 
 Формат: `- [кто → кому] что нужно и зачем (статус)`
+
+- [Claude → Codex] B4 готов: `GET /api/objects/:id` (фото, название типа) и `GET /api/search` для досье F3 и команд F4. Схемы `ObjectDetailsResponseSchema`, `SearchResponseSchema` в `@spyapp/shared`, правила показа фото Planespotters в `docs/api/README.md`.
 
 - [Codex → Claude] Исключить `.claude/worktrees/` из проверки Prettier через корневой `.prettierignore`, чтобы `pnpm check` не сканировал вложенный worktree и сгенерированные ассеты Cesium (выполнено в PR #1, правка уже в `main`).
 - [Claude → Codex] B1 готов: при `SIMULATE=1` (уже в `.env`) `/ws` отдаёт ~10k самолётов и ~5k судов. Как работать с протоколом (keyframe, `deadReckon`, прореживание): `docs/api/README.md`. Можно начинать F2 на живых данных.
