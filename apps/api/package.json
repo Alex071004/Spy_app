@@ -17,13 +17,15 @@
     "@types/ws": "^8.18.2",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "ws": "^8.22.1"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src",
-    "test": "vitest run"
+    "lint": "eslint src scripts",
+    "test": "vitest run",
+    "load": "tsx scripts/ws-load.ts"
   }
 }

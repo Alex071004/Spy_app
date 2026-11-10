@@ -22,6 +22,7 @@ const app = await buildApp({
         cacheDir: fileURLToPath(new URL("../.cache", import.meta.url)),
         log: satelliteLog,
       }),
+  wsCompression: process.env.WS_DEFLATE !== "0",
   ...(process.env.WEB_ORIGIN ? { webOrigin: process.env.WEB_ORIGIN } : {}),
   ...(process.env.LOG_LEVEL ? { logLevel: process.env.LOG_LEVEL } : {}),
 });
