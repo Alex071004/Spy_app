@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import compress from "@fastify/compress";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import {
@@ -12,6 +13,8 @@ import { StreamHub, type StreamHubOptions } from "./core/stream-hub";
 import { WorldState } from "./core/world-state";
 import { createPlanespottersPhotos, type AircraftPhotoProvider } from "./layers/aircraft/photos";
 import { registerRestRoutes } from "./routes/rest";
+import { createFixtureSatellites, type SatelliteSource } from "./layers/satellites/tle-source";
+import { registerSatelliteRoutes } from "./routes/satellites";
 
 interface AppOptions {
   webOrigin?: string;
@@ -20,6 +23,8 @@ interface AppOptions {
   hub?: StreamHubOptions;
   /** Источник фото для досье. По умолчанию Planespotters */
   photos?: AircraftPhotoProvider;
+  /** Наборы TLE. По умолчанию встроенные фикстуры (без сети) */
+  satellites?: SatelliteSource;
   /** Как часто удалять пропавшие объекты */
   sweepMs?: number;
 }
@@ -36,6 +41,8 @@ export async function buildApp(opts: AppOptions = {}) {
   let sweepTimer: ReturnType<typeof setInterval> | undefined;
 
   await app.register(cors, { origin: opts.webOrigin ?? "http://localhost:5173" });
+  // gzip/brotli для REST: наборы TLE и результаты поиска сжимаются в разы. WebSocket не затрагивается
+  await app.register(compress, { threshold: 1024 });
   await app.register(websocket);
 
   app.addHook("onReady", async () => {
@@ -63,6 +70,7 @@ export async function buildApp(opts: AppOptions = {}) {
   }));
 
   registerRestRoutes(app, { world, photos: opts.photos ?? createPlanespottersPhotos() });
+  registerSatelliteRoutes(app, opts.satellites ?? createFixtureSatellites());
 
   app.register(async (scope) => {
     scope.get("/ws", { websocket: true }, (socket) => {

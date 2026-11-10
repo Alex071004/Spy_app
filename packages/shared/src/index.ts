@@ -4,3 +4,4 @@ export * from "./protocol";
 export * from "./api";
 export * from "./geo";
 export * from "./layers/aircraft";
+export * from "./layers/satellites";
