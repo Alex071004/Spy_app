@@ -1,6 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { buildApp } from "./app";
 import { createConnectors } from "./layers";
+import { createLocalGeocoder, createNominatimGeocoder } from "./geocode/geocoder";
+import { AIRPORTS } from "./layers/aircraft/airports";
 import { createCelestrakSatellites, createFixtureSatellites } from "./layers/satellites/tle-source";
 
 try {
@@ -11,8 +13,8 @@ try {
 
 const simulate = process.env.SIMULATE === "1";
 const connectors = createConnectors(process.env);
-// Логгер появляется вместе с app, а источник спутников нужен раньше: подключаем после сборки
-const satelliteLog: { warn(obj: object, msg: string): void } = { warn: () => {} };
+// Логгер появляется вместе с app, а источники нужны раньше: подключаем после сборки
+const sourceLog: { warn(obj: object, msg: string): void } = { warn: () => {} };
 
 const app = await buildApp({
   connectors,
@@ -20,12 +22,15 @@ const app = await buildApp({
     ? createFixtureSatellites()
     : createCelestrakSatellites({
         cacheDir: fileURLToPath(new URL("../.cache", import.meta.url)),
-        log: satelliteLog,
+        log: sourceLog,
       }),
+  geocoder: simulate
+    ? createLocalGeocoder(AIRPORTS)
+    : createNominatimGeocoder({ fallback: createLocalGeocoder(AIRPORTS), log: sourceLog }),
   ...(process.env.WEB_ORIGIN ? { webOrigin: process.env.WEB_ORIGIN } : {}),
   ...(process.env.LOG_LEVEL ? { logLevel: process.env.LOG_LEVEL } : {}),
 });
-satelliteLog.warn = (obj, msg) => app.log.warn(obj, msg);
+sourceLog.warn = (obj, msg) => app.log.warn(obj, msg);
 
 if (connectors.length === 0) {
   app.log.warn("No data sources enabled");

@@ -23,7 +23,7 @@
 | B2b | Коннектор OpenSky `/states/all`: глобальный фон всех бортов одним запросом. adsb.lol остаётся для свежих данных в просматриваемой области. **Нужен бесплатный аккаунт OpenSky (Alex)**                                      | ⬜     |
 | B3  | Спутники: загрузка TLE с CelesTrak с кэшем, `GET /api/satellites/tle`                                                                                                                                                       | ✅     |
 | B4  | `GET /api/search`, `GET /api/objects/:id` (+ фото с Planespotters)                                                                                                                                                          | ✅     |
-| B6  | Геокодинг для `goto` и поиска мест: любые города и адреса (Nominatim/OSM через прокси с кэшем и лимитом 1 rps)                                                                                                              | ⬜     |
+| B6  | Геокодинг для `goto` и поиска мест: любые города и адреса (Nominatim/OSM через прокси с кэшем и лимитом 1 rps)                                                                                                              | ✅     |
 | B5  | Нагрузочный тест WS: 15k объектов, 20 клиентов. Сжатие трафика: сейчас ~195 КБ/с на вид всего мира (замер B1), цель < 50 КБ/с: props только при изменении, MessagePack                                                      | ⬜     |
 
 ## Codex · UI/UX и фронтенд
@@ -52,6 +52,8 @@
 ## Запросы между зонами
 
 Формат: `- [кто → кому] что нужно и зачем (статус)`
+
+- [Claude → Codex] B6 готов: `GET /api/geocode?q=&lang=` для команды `goto` в F4 (`GeocodeResponseSchema`). Важно: вызывать только по Enter или команде, не на каждое нажатие (правило Nominatim). Для перелёта камеры есть `viewAltitudeM`, рядом показывать `attribution`. Подробности: `docs/api/README.md`.
 
 - [Claude → Codex] B3 готов: `GET /api/satellites/tle?group=stations|visual|gps|starlink|...` отдаёт TLE для satellite.js, схема `SatellitesResponseSchema` и `ISS_NORAD_ID` в `@spyapp/shared`. Можно начинать F5. Подробности: `docs/api/README.md`.
 - [Claude → Codex] B4 готов: `GET /api/objects/:id` (фото, название типа) и `GET /api/search` для досье F3 и команд F4. Схемы `ObjectDetailsResponseSchema`, `SearchResponseSchema` в `@spyapp/shared`, правила показа фото Planespotters в `docs/api/README.md`.
