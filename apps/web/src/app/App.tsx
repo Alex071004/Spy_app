@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Panel } from "@spyapp/ui";
+import { Panel, Reticle } from "@spyapp/ui";
 import { GlobeEngine } from "../engine/GlobeEngine";
 import { useViewStore } from "../store/view";
 import { TopBar } from "../features/hud/TopBar";
@@ -11,6 +11,7 @@ import { Icon } from "../features/hud/Icon";
 import { AircraftLayer } from "../layers/aircraft/AircraftLayer";
 import { initialFeedState } from "../layers/aircraft/state";
 import { FeedNotice } from "../features/hud/FeedNotice";
+import { AircraftDossier } from "../features/object-card/AircraftDossier";
 
 export function App() {
   const { t } = useTranslation();
@@ -18,6 +19,9 @@ export function App() {
   const creditRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GlobeEngine | null>(null);
   const aircraftRef = useRef<AircraftLayer | null>(null);
+  const reticleRef = useRef<HTMLDivElement>(null);
+  const hasSelection = useViewStore((state) => state.selectedObject !== null);
+  const [noneVisible, setNoneVisible] = useState(false);
   const [layersOpen, setLayersOpen] = useState(
     () => !window.matchMedia("(max-width: 700px)").matches,
   );
@@ -25,8 +29,10 @@ export function App() {
   const [sceneState, setSceneState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
-    if (!globeRef.current || !creditRef.current) return;
-    const { setCursor, setCameraHeight, setFeed, activeLayers } = useViewStore.getState();
+    if (!globeRef.current || !creditRef.current || !reticleRef.current) return;
+    const { setCursor, setCameraHeight, setFeed, setSelectedObject, activeLayers } =
+      useViewStore.getState();
+    setSelectedObject(null);
     setFeed(initialFeedState);
     let engine: GlobeEngine;
     try {
@@ -48,6 +54,11 @@ export function App() {
       tokens: getComputedStyle(globeRef.current),
       active: activeLayers.aircraft,
       onState: setFeed,
+      reticle: reticleRef.current,
+      onSelection: (object) => {
+        setSelectedObject(object);
+        if (object) setNoneVisible(false);
+      },
     });
     aircraftRef.current = aircraft;
     const unsubscribe = useViewStore.subscribe((state, previous) => {
@@ -75,7 +86,11 @@ export function App() {
       )
         return;
       if (event.code === "KeyL") setLayersOpen((open) => !open);
-      if (event.key === "Escape") setLayersOpen(false);
+      if (event.key === "Escape") {
+        if (useViewStore.getState().selectedObject) aircraftRef.current?.clearSelection();
+        else setLayersOpen(false);
+        setNoneVisible(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -89,12 +104,14 @@ export function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${hasSelection ? "object-selected" : ""}`}>
       <div className="space-glow" aria-hidden="true" />
-      <div ref={globeRef} className="globe-viewport" role="region" aria-label={t("scene.globe")} />
+      <div ref={globeRef} className="globe-viewport" role="region" aria-label={t("scene.globe")}>
+        <Reticle ref={reticleRef} />
+      </div>
       <div className="hud-shell">
         <TopBar />
-        <main className="workspace">
+        <main className={`workspace ${hasSelection ? "has-selection" : ""}`}>
           <div className="view-heading">
             <div className="hud-label">{t("scene.eyebrow")}</div>
             <h1>{t("scene.title")}</h1>
@@ -135,12 +152,24 @@ export function App() {
             </div>
           )}
           <SceneControls
+            onSelect={() => setNoneVisible(!(aircraftRef.current?.selectNearest() ?? false))}
             onCamera={onCamera}
             lighting={lighting}
             onLighting={toggleLighting}
             layersOpen={layersOpen}
             onLayers={() => setLayersOpen((open) => !open)}
           />
+          <AircraftDossier
+            onClose={() => {
+              aircraftRef.current?.clearSelection();
+              globeRef.current?.querySelector("canvas")?.focus();
+            }}
+          />
+          {noneVisible && (
+            <div className="selection-notice hud-panel" role="status">
+              {t("object.noneVisible")}
+            </div>
+          )}
           <FeedNotice onFocus={() => aircraftRef.current?.focus()} />
           <div className="scene-caption">
             <span className="hud-label">{t("scene.earth")}</span>

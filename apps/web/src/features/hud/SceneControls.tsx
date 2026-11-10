@@ -5,6 +5,7 @@ import { Icon } from "./Icon";
 export type CameraAction = "zoomIn" | "zoomOut" | "reset";
 
 interface SceneControlsProps {
+  onSelect: () => void;
   onCamera: (action: CameraAction) => void;
   lighting: boolean;
   onLighting: () => void;
@@ -13,6 +14,7 @@ interface SceneControlsProps {
 }
 
 export function SceneControls({
+  onSelect,
   onCamera,
   lighting,
   onLighting,
@@ -22,6 +24,9 @@ export function SceneControls({
   const { t } = useTranslation();
   return (
     <nav className="scene-controls hud-panel" aria-label={t("scene.controls")}>
+      <IconButton label={t("object.selectNearest")} onClick={onSelect}>
+        <Icon name="target" />
+      </IconButton>
       <IconButton label={t("scene.layers")} aria-pressed={layersOpen} onClick={onLayers}>
         <Icon name="layers" />
       </IconButton>
