@@ -10,12 +10,16 @@ import {
 import type { Connector } from "./core/connector";
 import { StreamHub, type StreamHubOptions } from "./core/stream-hub";
 import { WorldState } from "./core/world-state";
+import { createPlanespottersPhotos, type AircraftPhotoProvider } from "./layers/aircraft/photos";
+import { registerRestRoutes } from "./routes/rest";
 
 interface AppOptions {
   webOrigin?: string;
   logLevel?: string;
   connectors?: Connector[];
   hub?: StreamHubOptions;
+  /** Источник фото для досье. По умолчанию Planespotters */
+  photos?: AircraftPhotoProvider;
   /** Как часто удалять пропавшие объекты */
   sweepMs?: number;
 }
@@ -57,6 +61,8 @@ export async function buildApp(opts: AppOptions = {}) {
     uptime: Math.round(process.uptime()),
     protocol: PROTOCOL_VERSION,
   }));
+
+  registerRestRoutes(app, { world, photos: opts.photos ?? createPlanespottersPhotos() });
 
   app.register(async (scope) => {
     scope.get("/ws", { websocket: true }, (socket) => {
