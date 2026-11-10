@@ -1,4 +1,4 @@
-import { Cartesian3, type Viewer } from "cesium";
+import { Cartesian3, HeadingPitchRange, Matrix4, Transforms, type Viewer } from "cesium";
 import { LiveClient, type LayerMessage } from "../../engine/LiveClient";
 import { readViewport } from "../../engine/viewport";
 import { FixtureFeed } from "./FixtureFeed";
@@ -7,6 +7,7 @@ import { LayerRenderer } from "./LayerRenderer";
 import { initialFeedState, type AircraftFeedState } from "./state";
 import { AircraftSelection } from "./AircraftSelection";
 import type { TrackedObject } from "@spyapp/shared";
+import { resolveAircraft, searchAircraft } from "./search";
 
 export class AircraftLayer {
   private readonly renderer: LayerRenderer;
@@ -16,6 +17,12 @@ export class AircraftLayer {
   private state = { ...initialFeedState };
   private active: boolean;
   private readonly selection: AircraftSelection;
+  private readonly removeTracking: () => void;
+  private trackedId: string | null = null;
+  private lastSubscription = 0;
+  private readonly trackingOffset = new Cartesian3();
+  private readonly trackingTransform = new Matrix4();
+  private readonly reportTracking: (id: string | null) => void;
 
   constructor(
     private readonly viewer: Viewer,
@@ -26,16 +33,16 @@ export class AircraftLayer {
       onState: (state: AircraftFeedState) => void;
       reticle: HTMLDivElement;
       onSelection: (object: TrackedObject | null) => void;
+      onTracking: (id: string | null) => void;
     },
   ) {
     this.active = options.active;
+    this.reportTracking = options.onTracking;
     this.renderer = new LayerRenderer(viewer.scene, options.tokens);
-    this.selection = new AircraftSelection(
-      viewer,
-      this.renderer,
-      options.reticle,
-      options.onSelection,
-    );
+    this.selection = new AircraftSelection(viewer, this.renderer, options.reticle, (object) => {
+      if (object?.id !== this.trackedId) this.stopTracking();
+      options.onSelection(object);
+    });
     const report = (patch: Partial<AircraftFeedState>) => {
       if (
         Object.entries(patch).every(
@@ -67,6 +74,25 @@ export class AircraftLayer {
       this.client.setSubscription(this.active ? ["aircraft"] : [], readViewport(viewer.camera)),
     );
     this.getView = () => readViewport(viewer.camera);
+    // Примитивы обновлены до этого обработчика; React не участвует в сопровождении.
+    this.removeTracking = viewer.scene.preUpdate.addEventListener(() => {
+      if (!this.trackedId) return;
+      const position = this.renderer.renderedPosition(this.trackedId);
+      if (!position) {
+        this.clearSelection();
+        return;
+      }
+      Cartesian3.clone(viewer.camera.position, this.trackingOffset);
+      viewer.camera.lookAtTransform(
+        Transforms.eastNorthUpToFixedFrame(position, undefined, this.trackingTransform),
+        this.trackingOffset,
+      );
+      const now = performance.now();
+      if (now - this.lastSubscription >= 5000) {
+        this.lastSubscription = now;
+        this.client.setSubscription(["aircraft"], this.getView());
+      }
+    });
     if (this.active) this.startDemo();
     this.client.start();
   }
@@ -106,6 +132,7 @@ export class AircraftLayer {
   }
 
   focus() {
+    this.stopTracking();
     const position = this.renderer.firstPosition();
     if (!position) return;
     this.viewer.camera.flyTo({
@@ -118,10 +145,41 @@ export class AircraftLayer {
     return this.selection.selectNearest();
   }
   clearSelection() {
+    this.stopTracking();
     this.selection.select(null);
   }
 
+  search(query: string) {
+    return searchAircraft(this.renderer.objects(), query);
+  }
+
+  track(query: string) {
+    const object = resolveAircraft(this.renderer.objects(), query);
+    if (!object) return false;
+    const position = this.renderer.renderedPosition(object.id);
+    if (!position) return false;
+    this.stopTracking();
+    this.trackedId = object.id;
+    this.selection.select(object.id);
+    this.viewer.camera.cancelFlight();
+    this.viewer.camera.lookAt(position, new HeadingPitchRange(0, -Math.PI / 3, 500_000));
+    this.lastSubscription = 0;
+    this.reportTracking(object.id);
+    this.viewer.scene.requestRender();
+    return true;
+  }
+
+  stopTracking() {
+    if (!this.trackedId) return;
+    this.trackedId = null;
+    this.viewer.camera.lookAtTransform(Matrix4.IDENTITY);
+    this.reportTracking(null);
+    this.viewer.scene.requestRender();
+  }
+
   destroy() {
+    this.stopTracking();
+    this.removeTracking();
     this.client.stop();
     this.fixtures.stop();
     this.removeCamera();

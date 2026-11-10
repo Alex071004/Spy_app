@@ -1,6 +1,45 @@
 import type { Dictionary } from "./ru";
 
 export const en: Dictionary = {
+  command: {
+    title: "Command centre",
+    open: "Commands",
+    close: "Close commands",
+    input: "Enter a command",
+    placeholder: "track, goto, layer…",
+    hint: "Choose a command or type it in full",
+    loaded: "Search loaded aircraft · ID, callsign, registration",
+    track: "Find an aircraft and follow it",
+    goto: "Go to a city or coordinates",
+    layer: "Switch a layer on or off",
+    stop: "Stop following",
+    tracking: "Following aircraft",
+    recent: "History",
+    on: "on",
+    off: "off",
+    suggestions: "Command suggestions",
+    noSuggestions: "No suggestions. Type a command and press Enter.",
+    navigate: "select",
+    execute: "run",
+    complete: "complete",
+    done: "Command completed",
+    moved: "Camera moved",
+    stopped: "Following stopped",
+    layerChanged: "{{name}} · {{state}}",
+    places: { tokyo: "Tokyo", moscow: "Moscow", london: "London", newYork: "New York" },
+    errors: {
+      unknown: "Available commands: track, goto, layer.",
+      trackUsage: "track <ID, callsign or registration> · track off — stop",
+      gotoUsage: "goto <latitude> <longitude> [height in km] or goto tokyo",
+      coordinates:
+        "Latitude: −90…90; longitude: −180…180; height: 0.3…45,000 km. Separate values with spaces.",
+      layerUsage: "layer <aircraft|vessels|satellites|events|webcams> [on|off|toggle]",
+      aircraftOff: "Enable aviation first: layer aircraft on",
+      notFound:
+        "Aircraft not found or query is ambiguous. Choose a suggestion; only loaded aircraft are available.",
+      unavailable: "The globe is not ready yet. Try again after loading.",
+    },
+  },
   object: {
     title: "Dossier · Aviation",
     close: "Close dossier",

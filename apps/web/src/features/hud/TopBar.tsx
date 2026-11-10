@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Icon } from "./Icon";
 import { useViewStore } from "../../store/view";
 import { feedLabel } from "./feedLabel";
+import { Kbd } from "@spyapp/ui";
 
 function useUtcClock() {
   const [now, setNow] = useState(() => new Date());
@@ -13,7 +14,7 @@ function useUtcClock() {
   return now.toISOString().slice(11, 19);
 }
 
-export function TopBar() {
+export function TopBar({ onCommand }: { onCommand: () => void }) {
   const { t, i18n } = useTranslation();
   const utc = useUtcClock();
   const feed = useViewStore((state) => state.feed);
@@ -29,11 +30,17 @@ export function TopBar() {
           SPYAPP<span className="brand-caption">{t("top.caption")}</span>
         </span>
       </div>
-      <div className="workspace-title">
-        <span className="status-dot accent" />
-        {t("top.workspace")}
-        <span className="workspace-index hud-num">01</span>
-      </div>
+      <button
+        type="button"
+        className="command-trigger"
+        onClick={onCommand}
+        aria-label={t("command.open")}
+        aria-haspopup="dialog"
+      >
+        <Icon name="terminal" />
+        <span>{t("command.open")}</span>
+        <Kbd>Ctrl K</Kbd>
+      </button>
       <div className="top-meta">
         <span
           className={`api-status ${feed.mode === "stream" && feed.connection === "live" && !feed.issue ? "connected" : ""}`}
