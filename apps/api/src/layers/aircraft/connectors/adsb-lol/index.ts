@@ -1,5 +1,5 @@
 import type { Connector } from "../../../../core/connector";
-import { AIRPORTS } from "../simulator-data";
+import { AIRPORTS } from "../../airports";
 import { normalizeAdsbLol, type AdsbLolResponse } from "./normalize";
 import { RADIUS_NM, buildCells, nextCell } from "./scheduler";
 
