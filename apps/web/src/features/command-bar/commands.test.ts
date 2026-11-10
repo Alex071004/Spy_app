@@ -25,6 +25,7 @@ describe("командная строка", () => {
     expect(parseCommand(input)).toEqual({ error: "coordinates" });
   });
   it("различает города, ID бортов, остановку и режимы слоёв", () => {
+    expect(parseCommand("goto SVO")).toEqual({ command: { kind: "place", query: "SVO" } });
     expect(parseCommand("goto Нью-Йорк")).toEqual(parseCommand("goto new york"));
     expect(parseCommand("track SIM-123")).toEqual({ command: { kind: "track", query: "SIM-123" } });
     expect(parseCommand("TRACK OFF")).toEqual({ command: { kind: "stop" } });
@@ -39,7 +40,7 @@ describe("командная строка", () => {
     "",
     "rm all",
     "track",
-    "goto tokyo extra",
+    "goto",
     "goto 1 2 3 4",
     "layer bogus",
     "layer aircraft yes",

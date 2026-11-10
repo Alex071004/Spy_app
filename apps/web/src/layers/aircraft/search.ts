@@ -48,10 +48,15 @@ export function searchAircraft(objects: Iterable<TrackedObject>, query: string, 
     .map(({ object }) => object);
 }
 
-export function resolveAircraft(objects: Iterable<TrackedObject>, query: string) {
+export function resolveAircraft(
+  objects: Iterable<TrackedObject>,
+  query: string,
+  exactOnly = false,
+) {
   const matches = searchAircraft(objects, query, 2);
   const first = matches[0];
   if (!first || !query.trim()) return undefined;
+  if (exactOnly && rank(first, query.trim().toLowerCase()) > 1) return undefined;
   const second = matches[1];
   return !second ||
     rank(first, query.trim().toLowerCase()) < rank(second, query.trim().toLowerCase())

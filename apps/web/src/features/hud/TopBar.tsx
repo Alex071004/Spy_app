@@ -36,6 +36,7 @@ export function TopBar({ onCommand }: { onCommand: () => void }) {
         onClick={onCommand}
         aria-label={t("command.open")}
         aria-haspopup="dialog"
+        aria-keyshortcuts="Control+K Meta+K"
       >
         <Icon name="terminal" />
         <span>{t("command.open")}</span>

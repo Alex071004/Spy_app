@@ -18,6 +18,7 @@ describe("поиск загруженных бортов", () => {
     expect(resolveAircraft(objects, "test")).toBeUndefined();
     expect(resolveAircraft([object("a", "SAME"), object("b", "SAME")], "same")).toBeUndefined();
     expect(resolveAircraft(objects, "missing")).toBeUndefined();
+    expect(resolveAircraft([objects[0]!], "test", true)).toBeUndefined();
     expect(resolveAircraft(objects, "")).toBeUndefined();
   });
   it("отдаёт приоритет точному ID и ограничивает подсказки", () => {

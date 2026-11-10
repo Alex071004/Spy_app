@@ -11,6 +11,7 @@ export type Command =
   | { kind: "track"; query: string }
   | { kind: "stop" }
   | { kind: "goto"; lat: number; lon: number; height: number }
+  | { kind: "place"; query: string }
   | { kind: "layer"; id: LayerId; mode: "on" | "off" | "toggle" };
 export type CommandError = "unknown" | "trackUsage" | "gotoUsage" | "coordinates" | "layerUsage";
 export type ParseResult = { command: Command } | { error: CommandError };
@@ -32,6 +33,8 @@ export function parseCommand(input: string): ParseResult {
         return {
           command: { kind: "goto", lat: destination.lat, lon: destination.lon, height: 750_000 },
         };
+      if (rest && !args.some((arg) => /^[+-]?(?:\d|[.,]\d)|^(?:nan|infinity)$/i.test(arg)))
+        return { command: { kind: "place", query: rest } };
       if (args.length < 2 || args.length > 3) return { error: "gotoUsage" };
       if (!args.every((arg) => /^[+-]?(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(arg)))
         return { error: "coordinates" };

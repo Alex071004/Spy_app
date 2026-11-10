@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LAYER_IDS, type TrackedObject } from "@spyapp/shared";
 import { CommandDialog, IconButton, Kbd } from "@spyapp/ui";
@@ -7,12 +7,13 @@ import { aircraftLabel } from "../../layers/aircraft/search";
 import { useViewStore } from "../../store/view";
 import { destinations } from "./commands";
 import { HISTORY_KEY, readHistory, remember } from "./history";
+import { useWorldSearch } from "./useWorldSearch";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   search: (query: string) => TrackedObject[];
-  execute: (input: string) => string | null;
+  execute: (input: string, signal: AbortSignal) => Promise<string | null>;
 }
 interface Suggestion {
   text: string;
@@ -36,6 +37,10 @@ function CommandPanel({ onClose, search, execute }: Props) {
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(-1);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const requestRef = useRef<AbortController | null>(null);
+  useEffect(() => () => requestRef.current?.abort(), []);
+  const world = useWorldSearch(query);
   const [history] = useState(() => {
     try {
       return readHistory(localStorage.getItem(HISTORY_KEY));
@@ -56,12 +61,24 @@ function CommandPanel({ onClose, search, execute }: Props) {
         return [
           { text: "track off", command: "track off", detail: t("command.stop"), icon: "target" },
         ];
-      return search(needle).map((object) => ({
+      const local = search(needle).map((object) => ({
         text: aircraftLabel(object),
         detail: object.id,
         command: `track ${object.id}`,
-        icon: "aircraft",
+        icon: "aircraft" as const,
       }));
+      const remote = world.results
+        .filter((item) => item.kind === "object" && item.layer === "aircraft")
+        .map((item): Suggestion => ({
+          text: item.label,
+          detail: [item.description, t("command.global")].filter(Boolean).join(" · "),
+          command: `track ${item.id}`,
+          icon: "aircraft",
+        }));
+      return [
+        ...local,
+        ...remote.filter((item) => !local.some((loaded) => loaded.command === item.command)),
+      ].slice(0, 8);
     }
     if (/^layer\s/i.test(text))
       return LAYER_IDS.filter((id) => `layer ${id}`.startsWith(lower.trimEnd())).map((id) => ({
@@ -72,14 +89,23 @@ function CommandPanel({ onClose, search, execute }: Props) {
       }));
     if (/^goto(?:\s|$)/i.test(text)) {
       const needle = lower.slice(4).trim();
-      return destinations
+      const local = destinations
         .filter((place) => !needle || place.aliases.some((alias) => alias.startsWith(needle)))
         .map((place) => ({
           text: t(`command.places.${place.id}`),
           detail: `${place.lat}, ${place.lon}`,
           command: `goto ${place.aliases[0]}`,
+          icon: "globe" as const,
+        }));
+      const remote = world.results
+        .filter((item) => item.kind === "place")
+        .map((item): Suggestion => ({
+          text: item.label,
+          detail: item.description ?? item.id,
+          command: `goto ${item.position.lat} ${item.position.lon}`,
           icon: "globe",
         }));
+      return [...local, ...remote].slice(0, 8);
     }
     const templates: Suggestion[] = [
       {
@@ -108,9 +134,10 @@ function CommandPanel({ onClose, search, execute }: Props) {
         icon: "history",
       }));
     return [...recent, ...templates.filter((item) => item.text.startsWith(lower.trim()))];
-  }, [query, history, layers, search, t]);
+  }, [query, history, layers, search, t, world.results]);
 
-  const run = (suggestion?: Suggestion) => {
+  const run = async (suggestion?: Suggestion) => {
+    if (requestRef.current) return;
     if (suggestion?.complete) {
       setQuery(suggestion.command);
       setActive(-1);
@@ -120,7 +147,18 @@ function CommandPanel({ onClose, search, execute }: Props) {
     }
     const text = suggestion?.command ?? query;
     if (!text.trim()) return;
-    const issue = execute(text);
+    const controller = new AbortController();
+    requestRef.current = controller;
+    setBusy(true);
+    let issue: string | null;
+    try {
+      issue = await execute(text, controller.signal);
+    } catch {
+      issue = t("command.errors.server");
+    }
+    if (controller.signal.aborted) return;
+    requestRef.current = null;
+    setBusy(false);
     if (issue) {
       setError(issue);
       return;
@@ -156,6 +194,8 @@ function CommandPanel({ onClose, search, execute }: Props) {
           aria-describedby={error ? errorId : undefined}
           aria-invalid={Boolean(error)}
           value={query}
+          readOnly={busy}
+          aria-busy={busy}
           maxLength={200}
           spellCheck={false}
           autoComplete="off"
@@ -179,7 +219,9 @@ function CommandPanel({ onClose, search, execute }: Props) {
             }
             if (event.key === "Enter") {
               event.preventDefault();
-              run(active >= 0 ? suggestions[active] : !query.trim() ? suggestions[0] : undefined);
+              void run(
+                active >= 0 ? suggestions[active] : !query.trim() ? suggestions[0] : undefined,
+              );
             }
             if (event.key === "Tab" && active >= 0 && suggestions[active]) {
               event.preventDefault();
@@ -192,7 +234,17 @@ function CommandPanel({ onClose, search, execute }: Props) {
         <Kbd>Esc</Kbd>
       </div>
       <p className="command-scope">
-        {t(/^track\s/i.test(query) ? "command.loaded" : "command.hint")}
+        {t(
+          busy
+            ? "command.working"
+            : world.status === "loading"
+              ? "command.searching"
+              : world.status === "error"
+                ? "command.localOnly"
+                : /^track\s/i.test(query)
+                  ? "command.loaded"
+                  : "command.hint",
+        )}
       </p>
       {error && (
         <p id={errorId} className="command-error" role="alert">
@@ -215,7 +267,7 @@ function CommandPanel({ onClose, search, execute }: Props) {
             aria-selected={active === index}
             className="command-option"
             onMouseMove={() => setActive(index)}
-            onClick={() => run(item)}
+            onClick={() => void run(item)}
           >
             <span className="command-option-icon">
               <Icon name={item.icon} />

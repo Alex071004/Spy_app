@@ -14,6 +14,12 @@ import { FeedNotice } from "../features/hud/FeedNotice";
 import { AircraftDossier } from "../features/object-card/AircraftDossier";
 import { CommandBar } from "../features/command-bar/CommandBar";
 import { parseCommand } from "../features/command-bar/commands";
+import {
+  ApiRequestError,
+  loadAircraft,
+  resolveSearchResult,
+  searchWorld,
+} from "../features/command-bar/api";
 
 export function App() {
   const { t } = useTranslation();
@@ -85,7 +91,7 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && !event.altKey && event.code === "KeyK") {
         event.preventDefault();
-        setCommandOpen((open) => !open);
+        if (!event.repeat) setCommandOpen((open) => !open);
         return;
       }
       if (commandOpen) return;
@@ -122,7 +128,7 @@ export function App() {
     }
     engineRef.current?.[action]();
   };
-  const execute = (input: string): string | null => {
+  const execute = async (input: string, signal: AbortSignal): Promise<string | null> => {
     const result = parseCommand(input);
     if ("error" in result) return t(`command.errors.${result.error}`);
     const command = result.command;
@@ -141,15 +147,53 @@ export function App() {
     if (!engineRef.current || !aircraftRef.current) return t("command.errors.unavailable");
     if (command.kind === "track") {
       if (!useViewStore.getState().activeLayers.aircraft) return t("command.errors.aircraftOff");
-      if (!aircraftRef.current.track(command.query)) return t("command.errors.notFound");
+      if (!aircraftRef.current.track(command.query)) {
+        const feed = useViewStore.getState().feed;
+        if (feed.mode !== "stream" || feed.connection !== "live")
+          return t("command.errors.waitingStream");
+        try {
+          let id = command.query.trim();
+          if (!/^aircraft:/i.test(id)) {
+            const matches = (await searchWorld(id, signal)).filter(
+              (item) => item.kind === "object" && item.layer === "aircraft",
+            );
+            const result = resolveSearchResult(matches, id);
+            if (!result) return t("command.errors.notFound");
+            id = result.id;
+          }
+          const object = await loadAircraft(id, signal);
+          if (signal.aborted) return null;
+          if (!aircraftRef.current?.trackObject(object)) return t("command.errors.waitingStream");
+        } catch (error) {
+          return t(
+            error instanceof ApiRequestError && error.status === 404
+              ? "command.errors.notFound"
+              : "command.errors.server",
+          );
+        }
+      }
       setFeedback(null);
     } else if (command.kind === "stop") {
       aircraftRef.current.stopTracking();
       setFeedback(t("command.stopped"));
-    } else {
+    } else if (command.kind === "goto") {
       aircraftRef.current.stopTracking();
       engineRef.current.goTo(command.lat, command.lon, command.height);
       setFeedback(t("command.moved"));
+    } else {
+      try {
+        const matches = (await searchWorld(command.query, signal)).filter(
+          (item) => item.kind === "place",
+        );
+        const result = resolveSearchResult(matches, command.query);
+        if (!result) return t("command.errors.placeNotFound");
+        if (signal.aborted) return null;
+        aircraftRef.current?.stopTracking();
+        engineRef.current?.goTo(result.position.lat, result.position.lon, 750_000);
+        setFeedback(t("command.moved"));
+      } catch {
+        return t("command.errors.server");
+      }
     }
     return null;
   };

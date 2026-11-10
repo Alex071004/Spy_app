@@ -154,7 +154,7 @@ export class AircraftLayer {
   }
 
   track(query: string) {
-    const object = resolveAircraft(this.renderer.objects(), query);
+    const object = resolveAircraft(this.renderer.objects(), query, true);
     if (!object) return false;
     const position = this.renderer.renderedPosition(object.id);
     if (!position) return false;
@@ -163,10 +163,24 @@ export class AircraftLayer {
     this.selection.select(object.id);
     this.viewer.camera.cancelFlight();
     this.viewer.camera.lookAt(position, new HeadingPitchRange(0, -Math.PI / 3, 500_000));
-    this.lastSubscription = 0;
+    this.lastSubscription = performance.now();
+    this.client.setSubscription(["aircraft"], this.getView());
     this.reportTracking(object.id);
     this.viewer.scene.requestRender();
     return true;
+  }
+
+  trackObject(object: TrackedObject) {
+    if (
+      !this.active ||
+      object.layer !== "aircraft" ||
+      this.state.mode !== "stream" ||
+      this.state.connection !== "live"
+    )
+      return false;
+    // REST даёт первый объект вне viewport; далее его обновляет обычная WS-подписка.
+    this.renderer.delta([object], [], performance.now(), this.client.serverNow());
+    return this.track(object.id);
   }
 
   stopTracking() {
