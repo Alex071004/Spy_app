@@ -5,6 +5,7 @@
   "type": "module",
   "description": "HTTP + WebSocket API server (Fastify)",
   "dependencies": {
+    "@fastify/compress": "^9.3.0",
     "@fastify/cors": "^11.4.0",
     "@fastify/websocket": "^11.3.6",
     "@spyapp/shared": "workspace:*",

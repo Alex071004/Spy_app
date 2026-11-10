@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import compress from "@fastify/compress";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import {
@@ -10,12 +11,16 @@ import {
 import type { Connector } from "./core/connector";
 import { StreamHub, type StreamHubOptions } from "./core/stream-hub";
 import { WorldState } from "./core/world-state";
+import { createFixtureSatellites, type SatelliteSource } from "./layers/satellites/tle-source";
+import { registerSatelliteRoutes } from "./routes/satellites";
 
 interface AppOptions {
   webOrigin?: string;
   logLevel?: string;
   connectors?: Connector[];
   hub?: StreamHubOptions;
+  /** Наборы TLE. По умолчанию встроенные фикстуры (без сети) */
+  satellites?: SatelliteSource;
   /** Как часто удалять пропавшие объекты */
   sweepMs?: number;
 }
@@ -32,6 +37,8 @@ export async function buildApp(opts: AppOptions = {}) {
   let sweepTimer: ReturnType<typeof setInterval> | undefined;
 
   await app.register(cors, { origin: opts.webOrigin ?? "http://localhost:5173" });
+  // gzip/brotli для REST: наборы TLE и результаты поиска сжимаются в разы. WebSocket не затрагивается
+  await app.register(compress, { threshold: 1024 });
   await app.register(websocket);
 
   app.addHook("onReady", async () => {
@@ -57,6 +64,8 @@ export async function buildApp(opts: AppOptions = {}) {
     uptime: Math.round(process.uptime()),
     protocol: PROTOCOL_VERSION,
   }));
+
+  registerSatelliteRoutes(app, opts.satellites ?? createFixtureSatellites());
 
   app.register(async (scope) => {
     scope.get("/ws", { websocket: true }, (socket) => {

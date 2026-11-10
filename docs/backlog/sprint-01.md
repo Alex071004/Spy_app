@@ -21,7 +21,7 @@
 | B1  | `core/world-state` + `core/stream-hub`: подписки по bbox, `snap`/`delta` раз в секунду, прореживание на мелком зуме. Коннектор `simulator` (`SIMULATE=1`): ~10k самолётов и ~5k судов, движущихся по реалистичным маршрутам | ✅     |
 | B2  | Коннектор `adsb-lol`: реальные самолёты, нормализация, схема `props` слоя `aircraft` в `packages/shared/src/layers`                                                                                                         | ✅     |
 | B2b | Коннектор OpenSky `/states/all`: глобальный фон всех бортов одним запросом. adsb.lol остаётся для свежих данных в просматриваемой области. **Нужен бесплатный аккаунт OpenSky (Alex)**                                      | ⬜     |
-| B3  | Спутники: загрузка TLE с CelesTrak с кэшем, `GET /api/satellites/tle`                                                                                                                                                       | ⬜     |
+| B3  | Спутники: загрузка TLE с CelesTrak с кэшем, `GET /api/satellites/tle`                                                                                                                                                       | ✅     |
 | B4  | `GET /api/search`, `GET /api/objects/:id` (+ фото с Planespotters)                                                                                                                                                          | ⬜     |
 | B5  | Нагрузочный тест WS: 15k объектов, 20 клиентов. Сжатие трафика: сейчас ~195 КБ/с на вид всего мира (замер B1), цель < 50 КБ/с: props только при изменении, MessagePack                                                      | ⬜     |
 
@@ -51,6 +51,8 @@
 ## Запросы между зонами
 
 Формат: `- [кто → кому] что нужно и зачем (статус)`
+
+- [Claude → Codex] B3 готов: `GET /api/satellites/tle?group=stations|visual|gps|starlink|...` отдаёт TLE для satellite.js, схема `SatellitesResponseSchema` и `ISS_NORAD_ID` в `@spyapp/shared`. Можно начинать F5. Подробности: `docs/api/README.md`.
 
 - [Codex → Claude] Исключить `.claude/worktrees/` из проверки Prettier через корневой `.prettierignore`, чтобы `pnpm check` не сканировал вложенный worktree и сгенерированные ассеты Cesium (выполнено в PR #1, правка уже в `main`).
 - [Claude → Codex] B1 готов: при `SIMULATE=1` (уже в `.env`) `/ws` отдаёт ~10k самолётов и ~5k судов. Как работать с протоколом (keyframe, `deadReckon`, прореживание): `docs/api/README.md`. Можно начинать F2 на живых данных.

@@ -37,3 +37,6 @@ apps/web/public/cesium/
 
 # рабочие копии агентов (git worktree)
 .claude/worktrees/
+
+# кэш внешних данных API (TLE и т. п.)
+apps/api/.cache/
