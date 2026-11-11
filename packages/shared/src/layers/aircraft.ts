@@ -23,6 +23,8 @@ export const AircraftPropsSchema = z.object({
   /** Заявленная экипажем ситуация: "general", "lifeguard", "minfuel", "nordo", "unlawful", "downed" */
   emergency: z.string().optional(),
   military: z.boolean().optional(),
+  /** Страна регистрации борта по ICAO-адресу (OpenSky): "Germany", "Russian Federation" */
+  country: z.string().optional(),
   /** Аэропорты вылета и назначения (IATA). Пока только в симуляторе */
   origin: z.string().optional(),
   destination: z.string().optional(),
