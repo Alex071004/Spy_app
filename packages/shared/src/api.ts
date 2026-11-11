@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GeoPointSchema, LayerIdSchema, TrackedObjectSchema } from "./model";
+import { BBoxSchema, GeoPointSchema, LayerIdSchema, TrackedObjectSchema } from "./model";
 
 // REST-ответы API. Описание: docs/api/README.md
 
@@ -67,3 +67,32 @@ export const SearchResponseSchema = z.object({
   results: z.array(SearchResultSchema),
 });
 export type SearchResponse = z.infer<typeof SearchResponseSchema>;
+
+/** Найденное место для команды goto. Источник: OpenStreetMap (Nominatim) или встроенный список аэропортов */
+export const GeocodeResultSchema = z.object({
+  /** "osm:relation:1543125" или "airport:HND" */
+  id: z.string(),
+  /** Короткое имя: «Токио» */
+  label: z.string(),
+  /** Полное: «Токио, Япония» */
+  description: z.string().optional(),
+  /** country, state, city, suburb, road, building, airport... */
+  kind: z.string(),
+  position: GeoPointSchema,
+  /** Границы места [west, south, east, north]. Бывают огромными (острова, заморские территории) */
+  bbox: BBoxSchema.optional(),
+  /** Рекомендуемая высота камеры над точкой, метры: подобрана по kind */
+  viewAltitudeM: z.number().positive(),
+});
+export type GeocodeResult = z.infer<typeof GeocodeResultSchema>;
+
+/** GET /api/geocode?q=...&lang=ru|en */
+export const GeocodeResponseSchema = z.object({
+  query: z.string(),
+  results: z.array(GeocodeResultSchema),
+  /** "nominatim" или "local" (SIMULATE=1, сбой или перегрузка Nominatim) */
+  source: z.string(),
+  /** Подпись, которую нужно показать рядом с результатами */
+  attribution: z.string(),
+});
+export type GeocodeResponse = z.infer<typeof GeocodeResponseSchema>;

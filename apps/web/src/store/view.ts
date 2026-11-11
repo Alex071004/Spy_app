@@ -9,6 +9,8 @@ interface ViewState {
   activeLayers: Record<LayerId, boolean>;
   feed: AircraftFeedState;
   selectedObject: TrackedObject | null;
+  trackedId: string | null;
+  setTrackedId: (id: string | null) => void;
   setSelectedObject: (object: TrackedObject | null) => void;
   setFeed: (feed: AircraftFeedState) => void;
   setCursor: (cursor: CursorPosition | null) => void;
@@ -21,6 +23,8 @@ export const useViewStore = create<ViewState>()((set) => ({
   cameraHeight: 0,
   feed: initialFeedState,
   selectedObject: null,
+  trackedId: null,
+  setTrackedId: (trackedId) => set({ trackedId }),
   setSelectedObject: (selectedObject) => set({ selectedObject }),
   setFeed: (feed) => set({ feed }),
   activeLayers: { aircraft: true, vessels: true, satellites: false, events: true, webcams: false },

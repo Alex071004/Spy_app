@@ -11,6 +11,9 @@ import {
 import type { Connector } from "./core/connector";
 import { StreamHub, type StreamHubOptions } from "./core/stream-hub";
 import { WorldState } from "./core/world-state";
+import { createLocalGeocoder, type Geocoder } from "./geocode/geocoder";
+import { AIRPORTS } from "./layers/aircraft/airports";
+import { registerGeocodeRoutes } from "./routes/geocode";
 import { createPlanespottersPhotos, type AircraftPhotoProvider } from "./layers/aircraft/photos";
 import { registerRestRoutes } from "./routes/rest";
 import { createFixtureSatellites, type SatelliteSource } from "./layers/satellites/tle-source";
@@ -27,6 +30,8 @@ interface AppOptions {
   satellites?: SatelliteSource;
   /** Сжатие WebSocket (permessage-deflate). По умолчанию включено */
   wsCompression?: boolean;
+  /** Геокодинг для goto. По умолчанию встроенный список аэропортов (без сети) */
+  geocoder?: Geocoder;
   /** Как часто удалять пропавшие объекты */
   sweepMs?: number;
 }
@@ -89,6 +94,7 @@ export async function buildApp(opts: AppOptions = {}) {
 
   registerRestRoutes(app, { world, photos: opts.photos ?? createPlanespottersPhotos() });
   registerSatelliteRoutes(app, opts.satellites ?? createFixtureSatellites());
+  registerGeocodeRoutes(app, opts.geocoder ?? createLocalGeocoder(AIRPORTS));
 
   app.register(async (scope) => {
     scope.get("/ws", { websocket: true }, (socket) => {

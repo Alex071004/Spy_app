@@ -162,6 +162,12 @@ export class GlobeEngine {
       duration: this.reducedMotion ? 0 : 1.2,
     });
   }
+  goTo(lat: number, lon: number, height: number) {
+    this.viewer.camera.flyTo({
+      destination: Cartesian3.fromDegrees(lon, lat, height),
+      duration: this.reducedMotion ? 0 : 1.2,
+    });
+  }
   private initialDestination() {
     // Обзор вдоль текущей границы света: и рельеф, и ночные огни видны при любом UTC.
     const now = new Date();

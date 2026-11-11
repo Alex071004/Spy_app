@@ -67,6 +67,9 @@ export class LayerRenderer {
   ids() {
     return this.tracks.keys();
   }
+  *objects() {
+    for (const { motion } of this.tracks.values()) yield motion.item;
+  }
 
   snapshot(items: TrackedObject[], now = performance.now(), sourceNow = Date.now()) {
     const retained = new Set(items.map((item) => item.id));

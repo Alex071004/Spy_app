@@ -12,6 +12,14 @@ import { AircraftLayer } from "../layers/aircraft/AircraftLayer";
 import { initialFeedState } from "../layers/aircraft/state";
 import { FeedNotice } from "../features/hud/FeedNotice";
 import { AircraftDossier } from "../features/object-card/AircraftDossier";
+import { CommandBar } from "../features/command-bar/CommandBar";
+import { parseCommand } from "../features/command-bar/commands";
+import {
+  ApiRequestError,
+  loadAircraft,
+  resolveSearchResult,
+  searchWorld,
+} from "../features/command-bar/api";
 
 export function App() {
   const { t } = useTranslation();
@@ -21,6 +29,9 @@ export function App() {
   const aircraftRef = useRef<AircraftLayer | null>(null);
   const reticleRef = useRef<HTMLDivElement>(null);
   const hasSelection = useViewStore((state) => state.selectedObject !== null);
+  const trackedId = useViewStore((state) => state.trackedId);
+  const [commandOpen, setCommandOpen] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [noneVisible, setNoneVisible] = useState(false);
   const [layersOpen, setLayersOpen] = useState(
     () => !window.matchMedia("(max-width: 700px)").matches,
@@ -33,6 +44,7 @@ export function App() {
     const { setCursor, setCameraHeight, setFeed, setSelectedObject, activeLayers } =
       useViewStore.getState();
     setSelectedObject(null);
+    useViewStore.getState().setTrackedId(null);
     setFeed(initialFeedState);
     let engine: GlobeEngine;
     try {
@@ -54,6 +66,7 @@ export function App() {
       tokens: getComputedStyle(globeRef.current),
       active: activeLayers.aircraft,
       onState: setFeed,
+      onTracking: useViewStore.getState().setTrackedId,
       reticle: reticleRef.current,
       onSelection: (object) => {
         setSelectedObject(object);
@@ -76,6 +89,12 @@ export function App() {
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.code === "KeyK") {
+        event.preventDefault();
+        if (!event.repeat) setCommandOpen((open) => !open);
+        return;
+      }
+      if (commandOpen) return;
       if (
         event.ctrlKey ||
         event.metaKey ||
@@ -94,9 +113,90 @@ export function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [commandOpen]);
 
-  const onCamera = (action: CameraAction) => engineRef.current?.[action]();
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = setTimeout(() => setFeedback(null), 4000);
+    return () => clearTimeout(timer);
+  }, [feedback]);
+
+  const onCamera = (action: CameraAction) => {
+    if (action === "reset") {
+      aircraftRef.current?.stopTracking();
+      setFeedback(null);
+    }
+    engineRef.current?.[action]();
+  };
+  const execute = async (input: string, signal: AbortSignal): Promise<string | null> => {
+    const result = parseCommand(input);
+    if ("error" in result) return t(`command.errors.${result.error}`);
+    const command = result.command;
+    if (command.kind === "layer") {
+      const { activeLayers, toggleLayer } = useViewStore.getState();
+      const next = command.mode === "toggle" ? !activeLayers[command.id] : command.mode === "on";
+      if (next !== activeLayers[command.id]) toggleLayer(command.id);
+      setFeedback(
+        t("command.layerChanged", {
+          name: t(`layers.${command.id}`),
+          state: t(next ? "command.on" : "command.off"),
+        }),
+      );
+      return null;
+    }
+    if (!engineRef.current || !aircraftRef.current) return t("command.errors.unavailable");
+    if (command.kind === "track") {
+      if (!useViewStore.getState().activeLayers.aircraft) return t("command.errors.aircraftOff");
+      if (!aircraftRef.current.track(command.query)) {
+        const feed = useViewStore.getState().feed;
+        if (feed.mode !== "stream" || feed.connection !== "live")
+          return t("command.errors.waitingStream");
+        try {
+          let id = command.query.trim();
+          if (!/^aircraft:/i.test(id)) {
+            const matches = (await searchWorld(id, signal)).filter(
+              (item) => item.kind === "object" && item.layer === "aircraft",
+            );
+            const result = resolveSearchResult(matches, id);
+            if (!result) return t("command.errors.notFound");
+            id = result.id;
+          }
+          const object = await loadAircraft(id, signal);
+          if (signal.aborted) return null;
+          if (!aircraftRef.current?.trackObject(object)) return t("command.errors.waitingStream");
+        } catch (error) {
+          return t(
+            error instanceof ApiRequestError && error.status === 404
+              ? "command.errors.notFound"
+              : "command.errors.server",
+          );
+        }
+      }
+      setFeedback(null);
+    } else if (command.kind === "stop") {
+      aircraftRef.current.stopTracking();
+      setFeedback(t("command.stopped"));
+    } else if (command.kind === "goto") {
+      aircraftRef.current.stopTracking();
+      engineRef.current.goTo(command.lat, command.lon, command.height);
+      setFeedback(t("command.moved"));
+    } else {
+      try {
+        const matches = (await searchWorld(command.query, signal)).filter(
+          (item) => item.kind === "place",
+        );
+        const result = resolveSearchResult(matches, command.query);
+        if (!result) return t("command.errors.placeNotFound");
+        if (signal.aborted) return null;
+        aircraftRef.current?.stopTracking();
+        engineRef.current?.goTo(result.position.lat, result.position.lon, 750_000);
+        setFeedback(t("command.moved"));
+      } catch {
+        return t("command.errors.server");
+      }
+    }
+    return null;
+  };
   const toggleLighting = () => {
     const next = !lighting;
     engineRef.current?.setLighting(next);
@@ -110,7 +210,7 @@ export function App() {
         <Reticle ref={reticleRef} />
       </div>
       <div className="hud-shell">
-        <TopBar />
+        <TopBar onCommand={() => setCommandOpen(true)} />
         <main className={`workspace ${hasSelection ? "has-selection" : ""}`}>
           <div className="view-heading">
             <div className="hud-label">{t("scene.eyebrow")}</div>
@@ -143,6 +243,17 @@ export function App() {
             <span>{t("scene.orbit")}</span>
             <span className="hud-num">3D</span>
           </div>
+          {(trackedId || feedback) && (
+            <div className="command-feedback hud-panel" role="status">
+              <Icon name={trackedId ? "target" : "terminal"} />
+              <span>{trackedId ? t("command.tracking") : feedback}</span>
+              {trackedId && (
+                <button type="button" onClick={() => aircraftRef.current?.stopTracking()}>
+                  {t("command.stop")}
+                </button>
+              )}
+            </div>
+          )}
           {sceneState !== "ready" && (
             <div
               className={`scene-notice hud-panel ${sceneState === "error" ? "scene-error" : ""}`}
@@ -189,6 +300,12 @@ export function App() {
         </main>
         <StatusBar creditRef={creditRef} />
       </div>
+      <CommandBar
+        open={commandOpen}
+        onClose={() => setCommandOpen(false)}
+        search={(query) => aircraftRef.current?.search(query) ?? []}
+        execute={execute}
+      />
     </div>
   );
 }

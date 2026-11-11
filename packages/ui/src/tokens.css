@@ -63,6 +63,11 @@
   --globe-night-brightness: 2.8;
   --aircraft-marker-size: 20;
   --size-dossier: 304px;
+  --size-command: 608px;
+  --height-command: 72dvh;
+  --top-command: 12dvh;
+  --command-backdrop: rgb(2 6 12 / 0.62);
+  --blur-command: 5px;
   --size-reticle: 44px;
   --reticle-corner: 10px;
   --z-reticle: 2;
