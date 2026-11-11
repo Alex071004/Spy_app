@@ -40,3 +40,6 @@ apps/web/public/cesium/
 
 # кэш внешних данных API (TLE и т. п.)
 apps/api/.cache/
+
+# копия main для просмотра сайта (start.cmd)
+.preview/
