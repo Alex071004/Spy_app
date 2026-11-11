@@ -5,7 +5,13 @@ chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
-where pnpm >nul 2>nul || (echo [SpyApp] Не найден pnpm. Установите командой: npm i -g pnpm & pause & exit /b 1)
+where node >nul 2>nul || (echo [SpyApp] Не найден Node.js. Установите Node.js 24 с https://nodejs.org & pause & exit /b 1)
+rem pnpm ставится один раз в профиль пользователя, права администратора не нужны
+where pnpm >nul 2>nul || set "PATH=%APPDATA%\npm;%PATH%"
+where pnpm >nul 2>nul || (
+  echo [SpyApp] pnpm не найден, устанавливаю...
+  call npm i -g pnpm@10.34.9 || goto :fail
+)
 
 echo [SpyApp] Скачиваю свежую версию main с GitHub...
 git fetch origin main || echo [SpyApp] Нет связи с GitHub, запускаю последнюю скачанную версию.
