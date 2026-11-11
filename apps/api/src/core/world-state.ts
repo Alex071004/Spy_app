@@ -26,6 +26,7 @@ const DEFAULT_TTL_MS: Record<LayerId, number> = {
  */
 export class WorldState implements WorldStateReader {
   private readonly layers = new Map<LayerId, Map<string, TrackedObject>>();
+  private readonly sourceTtlMs = new Map<string, number>();
 
   constructor(private readonly ttlMs: Record<LayerId, number> = DEFAULT_TTL_MS) {}
 
@@ -35,8 +36,28 @@ export class WorldState implements WorldStateReader {
     return map;
   }
 
+  /** TTL для объектов конкретного источника (например, OpenSky без аккаунта опрашивается раз в 15 мин) */
+  setSourceTtl(source: string, ms: number) {
+    this.sourceTtlMs.set(source, ms);
+  }
+
+  /**
+   * Один борт может прийти из нескольких источников (adsb.lol и OpenSky). Правила:
+   * более старые данные не затирают свежие; поля props, которых нет у нового источника
+   * (тип, регистрация), сохраняются от предыдущего.
+   */
   upsert(items: readonly TrackedObject[]) {
-    for (const item of items) this.layer(item.layer).set(item.id, item);
+    for (const item of items) {
+      const map = this.layer(item.layer);
+      const prev = map.get(item.id);
+      if (prev && prev.updatedAt > item.updatedAt) continue;
+      map.set(
+        item.id,
+        prev && prev.source !== item.source
+          ? { ...item, props: { ...prev.props, ...item.props } }
+          : item,
+      );
+    }
   }
 
   get(id: string) {
@@ -67,9 +88,9 @@ export class WorldState implements WorldStateReader {
   sweep(now: number) {
     let removed = 0;
     for (const [layer, map] of this.layers) {
-      const deadline = now - this.ttlMs[layer];
       for (const [id, item] of map) {
-        if (item.updatedAt < deadline) {
+        const ttl = Math.max(this.ttlMs[layer], this.sourceTtlMs.get(item.source) ?? 0);
+        if (item.updatedAt < now - ttl) {
           map.delete(id);
           removed++;
         }

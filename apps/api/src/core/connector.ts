@@ -14,6 +14,8 @@ export interface Connector {
   /** "adsb-lol", "simulator-aircraft" */
   id: string;
   layer: LayerId;
+  /** Сколько держать объект этого источника без обновлений, если дольше TTL слоя (редкий опрос) */
+  ttlMs?: number;
   start(ctx: ConnectorContext): void | Promise<void>;
   stop(): void | Promise<void>;
 }
