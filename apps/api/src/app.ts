@@ -70,6 +70,7 @@ export async function buildApp(opts: AppOptions = {}) {
 
   app.addHook("onReady", async () => {
     for (const connector of connectors) {
+      if (connector.ttlMs) world.setSourceTtl(connector.id, connector.ttlMs);
       await connector.start({
         upsert: (items) => world.upsert(items),
         views: () => hub.views(connector.layer),
