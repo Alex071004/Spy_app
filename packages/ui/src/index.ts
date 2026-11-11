@@ -5,3 +5,4 @@ export { IconButton } from "./IconButton";
 export { LayerToggle } from "./LayerToggle";
 export { Reticle } from "./Reticle";
 export { ObjectCard } from "./ObjectCard";
+export { CommandDialog } from "./CommandDialog";
