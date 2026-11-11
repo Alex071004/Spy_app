@@ -24,6 +24,7 @@ const app = await buildApp({
         cacheDir: fileURLToPath(new URL("../.cache", import.meta.url)),
         log: sourceLog,
       }),
+  wsCompression: process.env.WS_DEFLATE !== "0",
   geocoder: simulate
     ? createLocalGeocoder(AIRPORTS)
     : createNominatimGeocoder({ fallback: createLocalGeocoder(AIRPORTS), log: sourceLog }),

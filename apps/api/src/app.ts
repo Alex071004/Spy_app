@@ -28,6 +28,8 @@ interface AppOptions {
   photos?: AircraftPhotoProvider;
   /** Наборы TLE. По умолчанию встроенные фикстуры (без сети) */
   satellites?: SatelliteSource;
+  /** Сжатие WebSocket (permessage-deflate). По умолчанию включено */
+  wsCompression?: boolean;
   /** Геокодинг для goto. По умолчанию встроенный список аэропортов (без сети) */
   geocoder?: Geocoder;
   /** Как часто удалять пропавшие объекты */
@@ -36,6 +38,20 @@ interface AppOptions {
 
 /** Клиент не успевает читать: пропускаем для него тик, а не копим очередь */
 const MAX_BUFFERED_BYTES = 2 * 1024 * 1024;
+
+/**
+ * permessage-deflate: браузер распаковывает сам, протокол не меняется (B5).
+ * Словарь сжатия живёт между сообщениями (context takeover): дельты похожи друг на друга
+ * и сжимаются в разы лучше. Цена — ~300 КБ памяти на клиента.
+ */
+const WS_DEFLATE = {
+  zlibDeflateOptions: { level: 3, memLevel: 8 },
+  // Мелкие сообщения (hello, ошибки) сжимать дороже, чем отправлять как есть
+  threshold: 512,
+  // Не больше стольких сжатий параллельно: остальные ждут, а не грузят все ядра
+  concurrencyLimit: 8,
+  clientNoContextTakeover: true,
+};
 
 /** Сборка приложения без listen: используется сервером и тестами */
 export async function buildApp(opts: AppOptions = {}) {
@@ -48,7 +64,9 @@ export async function buildApp(opts: AppOptions = {}) {
   await app.register(cors, { origin: opts.webOrigin ?? "http://localhost:5173" });
   // gzip/brotli для REST: наборы TLE и результаты поиска сжимаются в разы. WebSocket не затрагивается
   await app.register(compress, { threshold: 1024 });
-  await app.register(websocket);
+  await app.register(websocket, {
+    options: { perMessageDeflate: opts.wsCompression === false ? false : WS_DEFLATE },
+  });
 
   app.addHook("onReady", async () => {
     for (const connector of connectors) {
